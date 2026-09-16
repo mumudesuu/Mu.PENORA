@@ -992,11 +992,14 @@ async function startTimer(id, minutes){
 }
 async function clearTimer(id){
   const f = fields.find(x=>x.id===id);
-  if(f){ f.timerEnd = null; f.timerMinutes = null; }
-  markPending(id, ['timerEnd','timerMinutes']);
+  if(f){ f.timerEnd = null; f.timerMinutes = null; f.species = ''; }
+  markPending(id, ['timerEnd','timerMinutes','species']);
   render();
-  await callApi({action:'clearTimer', id});
-  clearPending(id, ['timerEnd','timerMinutes']);
+  await Promise.all([
+    callApi({action:'clearTimer', id}),
+    callApi({action:'setSpecies', id, species: ''})
+  ]);
+  clearPending(id, ['timerEnd','timerMinutes','species']);
 }
 async function startHiddenTimer(id, minutes){
   if(!adminMode) return;
