@@ -706,6 +706,24 @@
   }
   .empty .emoji{ font-size:40px; display:block; margin-bottom:10px;}
 
+  .hidden-section{
+    margin-top: 40px;
+    padding: 20px;
+    border: 3px dashed #B7A6C2;
+    border-radius: 24px;
+    background: rgba(138,122,154,0.06);
+  }
+  .hidden-section-title{
+    font-family:"Baloo 2",sans-serif;
+    font-size: 17px;
+    color: #6B5A80;
+    text-align:center;
+    margin: 0 0 16px;
+  }
+  .hidden-section .grid{
+    margin: 0;
+  }
+
   /* ---------- footer sign ---------- */
   .sign{
     margin-top: 56px;
@@ -813,6 +831,11 @@
   <main class="grid" id="grid">
     <!-- cards injected by JS -->
   </main>
+
+  <section class="hidden-section" id="hiddenSection" style="display:none;">
+    <h2 class="hidden-section-title">🙈 已隱藏花田（訪客看不到，只有你自己看得到）</h2>
+    <div class="grid" id="hiddenGrid"></div>
+  </section>
 
   <section class="sign">
     <h2>🧺 收成小提醒</h2>
@@ -1468,34 +1491,56 @@
     grid.innerHTML = "";
     let filtered = activeRegion === "全部" ? flowers : flowers.filter(f => f.region === activeRegion);
 
-    // 雙重保險：非管理員一律看不到被隱藏的花田
-    // （正式後端在 list 動作就會先過濾掉了，這裡是本地示範模式跟保險機制）
-    if(!isAdmin){
-      filtered = filtered.filter(f => !f.hidden);
-    }
+    // 已隱藏的花田獨立成另一份清單，不跟一般花田混在一起。
+    // 訪客本來就看不到隱藏花田（後端已經過濾掉），這裡只有管理員(站長/已認證皮友)
+    // 才會有 hiddenFiltered 這份資料。
+    let hiddenFiltered = isAdmin ? filtered.filter(f => f.hidden) : [];
+    filtered = filtered.filter(f => !f.hidden);
 
     // 狀態篩選：空閒中 = 沒有在倒數；冷卻中 = 可收成(前1小時) + 冷卻(1小時後)都算
+    // 兩份清單（一般 / 隱藏）都套用同一組篩選條件
     if(activeStatus === "空閒中"){
       filtered = filtered.filter(f => getFlowerPhase(f) === 'idle');
+      hiddenFiltered = hiddenFiltered.filter(f => getFlowerPhase(f) === 'idle');
     } else if(activeStatus === "冷卻中"){
       filtered = filtered.filter(f => getFlowerPhase(f) !== 'idle');
+      hiddenFiltered = hiddenFiltered.filter(f => getFlowerPhase(f) !== 'idle');
     }
 
     // 可收成中（開花後 1 小時內）的花田固定排在最上面；
     // 一旦超過 1 小時變成冷卻中，就會回到原本的排序位置。
     // sort 是穩定排序，同一階段內的花田彼此順序不會被打亂。
-    const list = [...filtered].sort((a, b) => {
+    const sortByHarvest = (arr) => [...arr].sort((a, b) => {
       const aTop = getFlowerPhase(a) === 'harvest' ? 0 : 1;
       const bTop = getFlowerPhase(b) === 'harvest' ? 0 : 1;
       return aTop - bTop;
     });
 
+    const list = sortByHarvest(filtered);
+    const hiddenList = sortByHarvest(hiddenFiltered);
+
     if(list.length === 0){
       grid.innerHTML = `<div class="empty"><span class="emoji">🌱</span>目前沒有符合條件的開花公告，換個篩選條件看看吧。</div>`;
-      return;
+    } else {
+      list.forEach((f, i) => grid.appendChild(createCardElement(f, i)));
     }
 
-    list.forEach((f, i) => {
+    // 已隱藏花田分區：只有管理員看得到，而且獨立於上面那份清單之外
+    const hiddenSection = document.getElementById('hiddenSection');
+    const hiddenGrid = document.getElementById('hiddenGrid');
+    if(isAdmin && hiddenList.length > 0){
+      hiddenSection.style.display = '';
+      hiddenGrid.innerHTML = '';
+      hiddenList.forEach((f, i) => hiddenGrid.appendChild(createCardElement(f, i)));
+    } else {
+      hiddenSection.style.display = 'none';
+      hiddenGrid.innerHTML = '';
+    }
+
+    updateAllCountdowns();
+  }
+
+  function createCardElement(f, i){
       const card = document.createElement('div');
       card.className = 'card';
       card.dataset.cardFor = f.id;
@@ -1657,10 +1702,7 @@
         });
       }
 
-      grid.appendChild(card);
-    });
-
-    updateAllCountdowns();
+      return card;
   }
 
   function updateAllCountdowns(){
