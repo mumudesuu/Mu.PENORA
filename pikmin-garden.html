@@ -275,36 +275,21 @@
   .category-chip:hover{border-color:var(--purple);}
   .category-chip.active{background:var(--purple); border-color:var(--purple); color:var(--white);}
 
-  .hidden-timer-box{
-    border-top:2px dashed var(--purple);
-    padding-top:14px;
-    display:flex; flex-direction:column; gap:10px;
-  }
-  .hidden-timer-label{
-    font-size:11.5px; color:var(--purple-deep); font-weight:700; letter-spacing:.02em;
-    display:flex; align-items:center; gap:5px;
-  }
-
-  .bloom-track{display:flex; align-items:center; gap:0;}
-  .stage{
-    display:flex; flex-direction:column; align-items:center; gap:6px;
-    flex:1; cursor:pointer; user-select:none; background:none; border:none; color:inherit; font-family:inherit;
-  }
-  .stage-icon{
-    width:38px; height:38px; border-radius:14px;
-    display:flex; align-items:center; justify-content:center;
-    background:var(--cream); font-size:18px;
+  .harvest-check-row{
+    display:flex; align-items:center; gap:9px;
+    background:var(--cream);
     border:2px solid var(--cream-deep);
-    transition:all .15s ease;
+    border-radius:12px;
+    padding:10px 14px;
+    cursor:pointer;
+    align-self:flex-start;
   }
-  .stage.on .stage-icon{border-color:transparent;}
-  .stage[data-k="harvest"].on .stage-icon{background:var(--yellow); }
-  .stage[data-k="fridge"].on .stage-icon{background:var(--sky); }
-  .stage[data-k="ready"].on .stage-icon{background:var(--pink); }
-  .stage-label{font-size:11px; color:#9AAB9F; text-align:center; font-weight:700;}
-  .stage.on .stage-label{color:var(--ink);}
-  .vine{height:3px; flex:0.5; background:var(--cream-deep); margin-bottom:22px; border-radius:2px; overflow:hidden;}
-  .vine.on{background:var(--leaf);}
+  .harvest-check-row input[type="checkbox"]{
+    width:19px; height:19px; accent-color:var(--yellow-deep); cursor:pointer;
+  }
+  .harvest-check-label{
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:13.5px; color:var(--ink);
+  }
 
   .species-row{display:flex; align-items:center; gap:8px;}
   .species-label{
@@ -582,6 +567,40 @@
     font-family:'Baloo 2',sans-serif; font-weight:700; font-size:11.5px;
     color:#9AAB9F; flex-shrink:0;
   }
+  .log-expand-btn{
+    display:none;
+    width:100%;
+    margin-top:10px;
+    background:var(--cream);
+    border:2px solid var(--cream-deep);
+    color:var(--leaf-deep);
+    border-radius:11px;
+    padding:9px 0;
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .log-expand-btn:hover{border-color:var(--leaf);}
+
+  .jump-records-btn{
+    position:fixed;
+    right:20px; bottom:24px;
+    z-index:40;
+    background:var(--leaf);
+    color:var(--white);
+    border:none;
+    border-radius:26px;
+    padding:12px 18px;
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    font-size:13px;
+    display:flex; align-items:center; gap:6px;
+    box-shadow:0 5px 0 var(--leaf-deep);
+    cursor:pointer;
+  }
+  .jump-records-btn:hover{transform:translateY(-2px);}
+  .jump-records-btn:active{transform:translateY(3px); box-shadow:0 2px 0 var(--leaf-deep);}
 
   footer{text-align:center; color:#9AAB9F; font-size:12px; padding-top:24px;}
   @media (max-width:560px){
@@ -662,11 +681,22 @@
     <div id="emptyHint">新增第一塊花田，開始記錄採收進度吧。</div>
   </div>
 
-  <section class="harvest-log-section" id="harvestLogSection" style="display:none;">
-    <h2 class="log-title">🧺 沐沐採果紀錄</h2>
-    <ul class="log-list" id="harvestLogList"></ul>
-  </section>
+  <div id="recordsWrap">
+    <section class="harvest-log-section" id="plantLogSection" style="display:none;">
+      <h2 class="log-title">🌱 種植紀錄</h2>
+      <ul class="log-list" id="plantLogList"></ul>
+      <button class="log-expand-btn" id="plantLogExpandBtn" type="button"></button>
+    </section>
+
+    <section class="harvest-log-section" id="harvestLogSection" style="display:none;">
+      <h2 class="log-title">🧺 沐沐採果紀錄</h2>
+      <ul class="log-list" id="harvestLogList"></ul>
+      <button class="log-expand-btn" id="harvestLogExpandBtn" type="button"></button>
+    </section>
+  </div>
 </main>
+
+<button class="jump-records-btn" id="jumpRecordsBtn" type="button">⬇ 查看紀錄</button>
 
 <footer>🌼 沐光花語｜友田登記 · 皮克敏花田手記</footer>
 <div class="toast" id="toast"></div>
@@ -698,12 +728,14 @@ let apiUrl = DEFAULT_API_URL;
 let fields = [];
 let initialLoading = true;
 let harvestLog = [];
+let plantLog = [];
+let harvestLogExpanded = false;
+let plantLogExpanded = false;
 let pollHandle = null;
 let tickHandle = null;
 let adminMode = false;
 let adminIdToken = '';
 let customOpenIds = new Set();
-let hiddenCustomOpenIds = new Set();
 let currentFilter = 'all';
 let currentSearch = '';
 let pendingWrites = {};
@@ -854,8 +886,7 @@ function isEditingField(){
 async function fetchFields(){
   if(!apiUrl) return;
   try{
-    let url = apiUrl + '?t=' + Date.now();
-    if(adminMode && adminIdToken) url += '&idToken=' + encodeURIComponent(adminIdToken);
+    const url = apiUrl + '?t=' + Date.now();
     const res = await fetch(url);
     const data = await res.json();
     if(data.ok){
@@ -871,9 +902,7 @@ async function fetchFields(){
           ready: f.ready === true || f.ready === 'TRUE',
           createdAt: Number(f.createdAt) || Date.now(),
           timerEnd: f.timerEnd ? Number(f.timerEnd) : null,
-          timerMinutes: f.timerMinutes ? Number(f.timerMinutes) : null,
-          hiddenTimerEnd: f.hiddenTimerEnd ? Number(f.hiddenTimerEnd) : null,
-          hiddenTimerMinutes: f.hiddenTimerMinutes ? Number(f.hiddenTimerMinutes) : null
+          timerMinutes: f.timerMinutes ? Number(f.timerMinutes) : null
         };
         if(pendingWrites[f.id]){
           const existing = fields.find(x => x.id === f.id);
@@ -894,10 +923,16 @@ async function fetchFields(){
         species: l.species || '',
         timestamp: Number(l.timestamp) || 0
       })).sort((a,b) => b.timestamp - a.timestamp);
+      plantLog = (data.plantLog || []).map(l => ({
+        fieldName: l.fieldName,
+        species: l.species || '',
+        timestamp: Number(l.timestamp) || 0
+      })).sort((a,b) => b.timestamp - a.timestamp);
       setSyncStatus(true);
       initialLoading = false;
       if(!isEditingField()) render();
       renderHarvestLog();
+      renderPlantLog();
     }
   }catch(e){
     setSyncStatus(false);
@@ -926,8 +961,7 @@ async function addField(name, coords){
   fields.unshift({
     id: tempId, name, species:'', coords: coords || '', category:'其他',
     harvest:false, fridge:false, ready:false,
-    createdAt: Date.now(), timerEnd:null, timerMinutes:null,
-    hiddenTimerEnd:null, hiddenTimerMinutes:null
+    createdAt: Date.now(), timerEnd:null, timerMinutes:null
   });
   render();
   const result = await callApi({action:'add', name, coords: coords || ''});
@@ -1001,39 +1035,6 @@ async function clearTimer(id){
   ]);
   clearPending(id, ['timerEnd','timerMinutes','species']);
 }
-async function startHiddenTimer(id, minutes){
-  if(!adminMode) return;
-  const f = fields.find(x=>x.id===id);
-  if(f){ f.hiddenTimerEnd = Date.now() + minutes*60000; f.hiddenTimerMinutes = minutes; }
-  hiddenCustomOpenIds.delete(id);
-  markPending(id, ['hiddenTimerEnd','hiddenTimerMinutes']);
-  render();
-  const result = await callApi({action:'startHiddenTimer', id, minutes, idToken: adminIdToken});
-  clearPending(id, ['hiddenTimerEnd','hiddenTimerMinutes']);
-  if(result && result.ok === false && result.error === 'unauthorized'){
-    toast('驗證失敗：' + (result.reason || '未知原因'));
-    adminMode = false;
-    adminIdToken = '';
-    try{ localStorage.removeItem(ADMIN_TOKEN_KEY); }catch(e){}
-    updateAdminUI();
-  }
-}
-async function clearHiddenTimer(id){
-  if(!adminMode) return;
-  const f = fields.find(x=>x.id===id);
-  if(f){ f.hiddenTimerEnd = null; f.hiddenTimerMinutes = null; }
-  markPending(id, ['hiddenTimerEnd','hiddenTimerMinutes']);
-  render();
-  const result = await callApi({action:'clearHiddenTimer', id, idToken: adminIdToken});
-  clearPending(id, ['hiddenTimerEnd','hiddenTimerMinutes']);
-  if(result && result.ok === false && result.error === 'unauthorized'){
-    toast('驗證失敗：' + (result.reason || '未知原因'));
-    adminMode = false;
-    adminIdToken = '';
-    try{ localStorage.removeItem(ADMIN_TOKEN_KEY); }catch(e){}
-    updateAdminUI();
-  }
-}
 
 function formatDate(ts){
   const d = new Date(ts);
@@ -1106,10 +1107,6 @@ function cardTemplate(f){
   const statusLabel = hasTimer ? '❄️ 冷卻中' : '🟢 空閒中';
   const cardStateClass = hasTimer ? 'cooling' : '';
 
-  const hasHiddenTimer = !!f.hiddenTimerEnd;
-  const hiddenRemaining = hasHiddenTimer ? f.hiddenTimerEnd - Date.now() : 0;
-  const hiddenCustomOpen = hiddenCustomOpenIds.has(f.id);
-
   return `
   <div class="card ${cardStateClass}" data-id="${f.id}">
     <div class="card-head">
@@ -1130,22 +1127,10 @@ function cardTemplate(f){
     </div>
 
     ${adminMode ? `
-    <div class="bloom-track">
-      <button class="stage ${f.harvest?'on':''}" data-role="stage" data-key="harvest" type="button">
-        <div class="stage-icon">🧺</div>
-        <div class="stage-label">已採果</div>
-      </button>
-      <div class="vine ${f.harvest?'on':''}"></div>
-      <button class="stage ${f.fridge?'on':''}" data-role="stage" data-key="fridge" type="button">
-        <div class="stage-icon">❄️</div>
-        <div class="stage-label">已冰冰箱</div>
-      </button>
-      <div class="vine ${f.fridge?'on':''}"></div>
-      <button class="stage ${f.ready?'on':''}" data-role="stage" data-key="ready" type="button">
-        <div class="stage-icon">🍏</div>
-        <div class="stage-label">待取冰箱</div>
-      </button>
-    </div>
+    <label class="harvest-check-row">
+      <input type="checkbox" data-role="harvest-checkbox" ${f.harvest ? 'checked' : ''}>
+      <span class="harvest-check-label">🧺 已採果</span>
+    </label>
     ` : ''}
 
     <div class="species-row">
@@ -1183,32 +1168,6 @@ function cardTemplate(f){
         </div>` : ''}
       `}
     </div>
-
-    ${adminMode ? `
-    <div class="hidden-timer-box">
-      ${hasHiddenTimer ? `
-        <div class="timer-active-row">
-          <span class="hidden-timer-label">🔒 隱藏倒數 · ${formatDuration(f.hiddenTimerMinutes)}</span>
-          <button class="clear-btn" data-role="clear-hidden-timer">清除</button>
-        </div>
-        <div class="timer-display" style="color:var(--purple-deep);" data-role="hidden-countdown">${formatCountdown(hiddenRemaining)}</div>
-      ` : `
-        <span class="hidden-timer-label">🔒 隱藏倒數（僅管理員可見）</span>
-        <div class="preset-row">
-          ${PRESETS.map(p => `<button class="preset-btn" data-role="start-hidden-timer" data-minutes="${p.minutes}">${p.label}</button>`).join('')}
-        </div>
-        <button class="custom-toggle" data-role="toggle-hidden-custom" type="button">${hiddenCustomOpen ? '收起自訂倒數' : '⏱ 自訂倒數'}</button>
-        ${hiddenCustomOpen ? `
-        <div class="custom-row">
-          <input type="number" min="0" max="999" class="custom-input" data-role="hidden-custom-h" placeholder="0">
-          <span>時</span>
-          <input type="number" min="0" max="59" class="custom-input" data-role="hidden-custom-m" placeholder="0">
-          <span>分</span>
-          <button class="timer-btn" data-role="start-hidden-custom" type="button">開始</button>
-        </div>` : ''}
-      `}
-    </div>
-    ` : ''}
   </div>`;
 }
 
@@ -1239,10 +1198,9 @@ function render(){
       deleteField(e.target.closest('.card').dataset.id);
     });
   });
-  grid.querySelectorAll('[data-role="stage"]').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      const card = e.currentTarget.closest('.card');
-      toggleStage(card.dataset.id, e.currentTarget.dataset.key);
+  grid.querySelectorAll('[data-role="harvest-checkbox"]').forEach(cb=>{
+    cb.addEventListener('change', e=>{
+      toggleStage(e.target.closest('.card').dataset.id, 'harvest');
     });
   });
   grid.querySelectorAll('[data-role="name"]').forEach(inp=>{
@@ -1313,35 +1271,6 @@ function render(){
       startTimer(card.dataset.id, total);
     });
   });
-  grid.querySelectorAll('[data-role="start-hidden-timer"]').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      const card = e.target.closest('.card');
-      startHiddenTimer(card.dataset.id, Number(e.target.dataset.minutes));
-    });
-  });
-  grid.querySelectorAll('[data-role="clear-hidden-timer"]').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      clearHiddenTimer(e.target.closest('.card').dataset.id);
-    });
-  });
-  grid.querySelectorAll('[data-role="toggle-hidden-custom"]').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      const id = e.target.closest('.card').dataset.id;
-      if(hiddenCustomOpenIds.has(id)) hiddenCustomOpenIds.delete(id);
-      else hiddenCustomOpenIds.add(id);
-      render();
-    });
-  });
-  grid.querySelectorAll('[data-role="start-hidden-custom"]').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      const card = e.target.closest('.card');
-      const h = Number(card.querySelector('[data-role="hidden-custom-h"]').value) || 0;
-      const m = Number(card.querySelector('[data-role="hidden-custom-m"]').value) || 0;
-      const total = h*60 + m;
-      if(total <= 0){ toast('請輸入時或分'); return; }
-      startHiddenTimer(card.dataset.id, total);
-    });
-  });
 }
 
 function formatLogTime(ts){
@@ -1349,17 +1278,23 @@ function formatLogTime(ts){
   return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-function renderHarvestLog(){
-  const section = document.getElementById('harvestLogSection');
-  const list = document.getElementById('harvestLogList');
-  if(!harvestLog.length){
+const LOG_PREVIEW_COUNT = 10;
+const LOG_MAX_COUNT = 30;
+
+function renderLogSection(list, icon, sectionId, listId, expandBtnId, expanded){
+  const section = document.getElementById(sectionId);
+  const listEl = document.getElementById(listId);
+  const btn = document.getElementById(expandBtnId);
+  if(!list.length){
     section.style.display = 'none';
     return;
   }
   section.style.display = 'block';
-  list.innerHTML = harvestLog.slice(0, 20).map(l => `
+  const capped = list.slice(0, LOG_MAX_COUNT);
+  const shown = expanded ? capped : capped.slice(0, LOG_PREVIEW_COUNT);
+  listEl.innerHTML = shown.map(l => `
     <li class="log-item">
-      <span class="log-icon">🧺</span>
+      <span class="log-icon">${icon}</span>
       <span class="log-text">
         <strong>${escapeHtml(l.fieldName)}</strong>
         ${l.species ? `<span class="log-species">・${escapeHtml(l.species)}</span>` : ''}
@@ -1367,6 +1302,19 @@ function renderHarvestLog(){
       <span class="log-time">${formatLogTime(l.timestamp)}</span>
     </li>
   `).join('');
+  if(capped.length > LOG_PREVIEW_COUNT){
+    btn.style.display = 'block';
+    btn.textContent = expanded ? '收起' : `展開查看更多（共 ${capped.length} 筆）`;
+  }else{
+    btn.style.display = 'none';
+  }
+}
+
+function renderHarvestLog(){
+  renderLogSection(harvestLog, '🧺', 'harvestLogSection', 'harvestLogList', 'harvestLogExpandBtn', harvestLogExpanded);
+}
+function renderPlantLog(){
+  renderLogSection(plantLog, '🌱', 'plantLogSection', 'plantLogList', 'plantLogExpandBtn', plantLogExpanded);
 }
 
 function startTicker(){
@@ -1379,11 +1327,6 @@ function startTicker(){
         const remaining = f.timerEnd - Date.now();
         const disp = card.querySelector('[data-role="countdown"]');
         if(disp) disp.textContent = formatCountdown(remaining);
-      }
-      if(f.hiddenTimerEnd){
-        const hRemaining = f.hiddenTimerEnd - Date.now();
-        const hDisp = card.querySelector('[data-role="hidden-countdown"]');
-        if(hDisp) hDisp.textContent = formatCountdown(hRemaining);
       }
       const timeRow = card.querySelector('[data-role="local-time-row"]');
       if(timeRow){
@@ -1437,6 +1380,17 @@ document.getElementById('searchClear').addEventListener('click', ()=>{
   document.getElementById('searchBar').classList.remove('has-value');
   input.focus();
   render();
+});
+document.getElementById('harvestLogExpandBtn').addEventListener('click', ()=>{
+  harvestLogExpanded = !harvestLogExpanded;
+  renderHarvestLog();
+});
+document.getElementById('plantLogExpandBtn').addEventListener('click', ()=>{
+  plantLogExpanded = !plantLogExpanded;
+  renderPlantLog();
+});
+document.getElementById('jumpRecordsBtn').addEventListener('click', ()=>{
+  document.getElementById('recordsWrap').scrollIntoView({behavior:'smooth', block:'start'});
 });
 
 /* ---------- 通關密語鎖 ---------- */
