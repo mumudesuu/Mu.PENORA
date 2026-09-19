@@ -276,13 +276,9 @@
   .category-chip.active{background:var(--purple); border-color:var(--purple); color:var(--white);}
 
   .harvest-check-row{
-    display:flex; align-items:center; gap:9px;
-    background:var(--cream);
-    border:2px solid var(--cream-deep);
-    border-radius:12px;
-    padding:10px 14px;
+    display:flex; align-items:center; gap:8px;
     cursor:pointer;
-    align-self:flex-start;
+    padding-top:4px;
   }
   .harvest-check-row input[type="checkbox"]{
     width:19px; height:19px; accent-color:var(--yellow-deep); cursor:pointer;
@@ -563,6 +559,13 @@
   .log-text{flex:1; min-width:0; color:var(--ink);}
   .log-text strong{font-family:'Baloo 2',sans-serif; font-weight:700;}
   .log-species{color:#9AAB9F; font-weight:600;}
+  .log-type{
+    display:inline-block; margin-left:6px;
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:10.5px;
+    padding:2px 8px; border-radius:10px;
+  }
+  .log-type.plant{background:#EAF6EE; color:var(--leaf-deep);}
+  .log-type.harvest{background:#FFF3D6; color:var(--yellow-deep);}
   .log-time{
     font-family:'Baloo 2',sans-serif; font-weight:700; font-size:11.5px;
     color:#9AAB9F; flex-shrink:0;
@@ -682,16 +685,10 @@
   </div>
 
   <div id="recordsWrap">
-    <section class="harvest-log-section" id="plantLogSection" style="display:none;">
-      <h2 class="log-title">🌱 種植紀錄</h2>
-      <ul class="log-list" id="plantLogList"></ul>
-      <button class="log-expand-btn" id="plantLogExpandBtn" type="button"></button>
-    </section>
-
-    <section class="harvest-log-section" id="harvestLogSection" style="display:none;">
-      <h2 class="log-title">🧺 沐沐採果紀錄</h2>
-      <ul class="log-list" id="harvestLogList"></ul>
-      <button class="log-expand-btn" id="harvestLogExpandBtn" type="button"></button>
+    <section class="harvest-log-section" id="logSection" style="display:none;">
+      <h2 class="log-title">📋 花田紀錄</h2>
+      <ul class="log-list" id="logList"></ul>
+      <button class="log-expand-btn" id="logExpandBtn" type="button"></button>
     </section>
   </div>
 </main>
@@ -727,10 +724,8 @@ const CATEGORIES = ['沐田', '達醬', '柴田', 'Kiwi', '暫存', '其他'];
 let apiUrl = DEFAULT_API_URL;
 let fields = [];
 let initialLoading = true;
-let harvestLog = [];
-let plantLog = [];
-let harvestLogExpanded = false;
-let plantLogExpanded = false;
+let mergedLog = [];
+let logExpanded = false;
 let pollHandle = null;
 let tickHandle = null;
 let adminMode = false;
@@ -918,21 +913,23 @@ async function fetchFields(){
         if(aCooling && bCooling) return a.timerEnd - b.timerEnd;
         return a.name.localeCompare(b.name, 'zh-Hant');
       });
-      harvestLog = (data.log || []).map(l => ({
+      const harvestEntries = (data.log || []).map(l => ({
         fieldName: l.fieldName,
         species: l.species || '',
-        timestamp: Number(l.timestamp) || 0
-      })).sort((a,b) => b.timestamp - a.timestamp);
-      plantLog = (data.plantLog || []).map(l => ({
+        timestamp: Number(l.timestamp) || 0,
+        type: 'harvest'
+      }));
+      const plantEntries = (data.plantLog || []).map(l => ({
         fieldName: l.fieldName,
         species: l.species || '',
-        timestamp: Number(l.timestamp) || 0
-      })).sort((a,b) => b.timestamp - a.timestamp);
+        timestamp: Number(l.timestamp) || 0,
+        type: 'plant'
+      }));
+      mergedLog = harvestEntries.concat(plantEntries).sort((a,b) => b.timestamp - a.timestamp);
       setSyncStatus(true);
       initialLoading = false;
       if(!isEditingField()) render();
-      renderHarvestLog();
-      renderPlantLog();
+      renderMergedLog();
     }
   }catch(e){
     setSyncStatus(false);
@@ -1026,14 +1023,14 @@ async function startTimer(id, minutes){
 }
 async function clearTimer(id){
   const f = fields.find(x=>x.id===id);
-  if(f){ f.timerEnd = null; f.timerMinutes = null; f.species = ''; }
-  markPending(id, ['timerEnd','timerMinutes','species']);
+  if(f){ f.timerEnd = null; f.timerMinutes = null; f.species = ''; f.harvest = false; }
+  markPending(id, ['timerEnd','timerMinutes','species','harvest']);
   render();
   await Promise.all([
     callApi({action:'clearTimer', id}),
     callApi({action:'setSpecies', id, species: ''})
   ]);
-  clearPending(id, ['timerEnd','timerMinutes','species']);
+  clearPending(id, ['timerEnd','timerMinutes','species','harvest']);
 }
 
 function formatDate(ts){
@@ -1126,13 +1123,6 @@ function cardTemplate(f){
       ${CATEGORIES.map(c => `<button class="category-chip ${f.category===c?'active':''}" data-role="category" data-category="${c}" type="button">${c}</button>`).join('')}
     </div>
 
-    ${adminMode ? `
-    <label class="harvest-check-row">
-      <input type="checkbox" data-role="harvest-checkbox" ${f.harvest ? 'checked' : ''}>
-      <span class="harvest-check-label">🧺 已採果</span>
-    </label>
-    ` : ''}
-
     <div class="species-row">
       <span class="species-label">花種🌸</span>
       <input class="species-input" data-role="species" placeholder="選填" value="${escapeHtml(f.species)}" maxlength="20">
@@ -1168,6 +1158,13 @@ function cardTemplate(f){
         </div>` : ''}
       `}
     </div>
+
+    ${adminMode ? `
+    <label class="harvest-check-row">
+      <input type="checkbox" data-role="harvest-checkbox" ${f.harvest ? 'checked' : ''}>
+      <span class="harvest-check-label">🧺 已採果</span>
+    </label>
+    ` : ''}
   </div>`;
 }
 
@@ -1281,40 +1278,37 @@ function formatLogTime(ts){
 const LOG_PREVIEW_COUNT = 10;
 const LOG_MAX_COUNT = 30;
 
-function renderLogSection(list, icon, sectionId, listId, expandBtnId, expanded){
-  const section = document.getElementById(sectionId);
-  const listEl = document.getElementById(listId);
-  const btn = document.getElementById(expandBtnId);
-  if(!list.length){
+function renderMergedLog(){
+  const section = document.getElementById('logSection');
+  const listEl = document.getElementById('logList');
+  const btn = document.getElementById('logExpandBtn');
+  if(!mergedLog.length){
     section.style.display = 'none';
     return;
   }
   section.style.display = 'block';
-  const capped = list.slice(0, LOG_MAX_COUNT);
-  const shown = expanded ? capped : capped.slice(0, LOG_PREVIEW_COUNT);
-  listEl.innerHTML = shown.map(l => `
+  const capped = mergedLog.slice(0, LOG_MAX_COUNT);
+  const shown = logExpanded ? capped : capped.slice(0, LOG_PREVIEW_COUNT);
+  listEl.innerHTML = shown.map(l => {
+    const icon = l.type === 'harvest' ? '🧺' : '🌱';
+    const typeLabel = l.type === 'harvest' ? '採果' : '種植';
+    return `
     <li class="log-item">
       <span class="log-icon">${icon}</span>
       <span class="log-text">
         <strong>${escapeHtml(l.fieldName)}</strong>
         ${l.species ? `<span class="log-species">・${escapeHtml(l.species)}</span>` : ''}
+        <span class="log-type ${l.type}">${typeLabel}</span>
       </span>
       <span class="log-time">${formatLogTime(l.timestamp)}</span>
-    </li>
-  `).join('');
+    </li>`;
+  }).join('');
   if(capped.length > LOG_PREVIEW_COUNT){
     btn.style.display = 'block';
-    btn.textContent = expanded ? '收起' : `展開查看更多（共 ${capped.length} 筆）`;
+    btn.textContent = logExpanded ? '收起' : `展開查看更多（共 ${capped.length} 筆）`;
   }else{
     btn.style.display = 'none';
   }
-}
-
-function renderHarvestLog(){
-  renderLogSection(harvestLog, '🧺', 'harvestLogSection', 'harvestLogList', 'harvestLogExpandBtn', harvestLogExpanded);
-}
-function renderPlantLog(){
-  renderLogSection(plantLog, '🌱', 'plantLogSection', 'plantLogList', 'plantLogExpandBtn', plantLogExpanded);
 }
 
 function startTicker(){
@@ -1381,13 +1375,9 @@ document.getElementById('searchClear').addEventListener('click', ()=>{
   input.focus();
   render();
 });
-document.getElementById('harvestLogExpandBtn').addEventListener('click', ()=>{
-  harvestLogExpanded = !harvestLogExpanded;
-  renderHarvestLog();
-});
-document.getElementById('plantLogExpandBtn').addEventListener('click', ()=>{
-  plantLogExpanded = !plantLogExpanded;
-  renderPlantLog();
+document.getElementById('logExpandBtn').addEventListener('click', ()=>{
+  logExpanded = !logExpanded;
+  renderMergedLog();
 });
 document.getElementById('jumpRecordsBtn').addEventListener('click', ()=>{
   document.getElementById('recordsWrap').scrollIntoView({behavior:'smooth', block:'start'});
