@@ -95,6 +95,8 @@
   }
   .icon-btn:hover{transform:translateY(-2px);}
   .icon-btn:active{transform:translateY(2px); box-shadow:0 2px 0 rgba(39,97,72,0.14);}
+  .icon-btn.spinning{animation:spin .6s linear;}
+  @keyframes spin{from{transform:rotate(0);} to{transform:rotate(360deg);}}
   .sync-pill{
     font-family:'Baloo 2',sans-serif; font-weight:700; font-size:11px;
     padding:6px 12px; border-radius:20px;
@@ -553,23 +555,22 @@
     padding:9px 0;
     border-bottom:1px dashed var(--cream-deep);
     font-size:13.5px;
+    flex-wrap:wrap;
   }
   .log-item:last-child{border-bottom:none;}
-  .log-icon{font-size:15px; flex-shrink:0;}
-  .log-text{flex:1; min-width:0; color:var(--ink);}
-  .log-text strong{font-family:'Baloo 2',sans-serif; font-weight:700;}
+  .log-name{flex:1; min-width:120px; color:var(--ink);}
+  .log-name strong{font-family:'Baloo 2',sans-serif; font-weight:700;}
   .log-species{color:#9AAB9F; font-weight:600;}
-  .log-type{
-    display:inline-block; margin-left:6px;
-    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:10.5px;
-    padding:2px 8px; border-radius:10px;
+  .log-badge{
+    display:inline-flex; align-items:center; gap:4px;
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:11px;
+    padding:4px 11px; border-radius:14px;
+    border:1.5px solid currentColor;
+    white-space:nowrap;
+    flex-shrink:0;
   }
-  .log-type.plant{background:#EAF6EE; color:var(--leaf-deep);}
-  .log-type.harvest{background:#FFF3D6; color:var(--yellow-deep);}
-  .log-time{
-    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:11.5px;
-    color:#9AAB9F; flex-shrink:0;
-  }
+  .plant-badge{color:var(--leaf-deep); background:rgba(62,145,102,0.08);}
+  .harvest-badge{color:var(--yellow-deep); background:rgba(214,160,20,0.08);}
   .log-expand-btn{
     display:none;
     width:100%;
@@ -646,11 +647,12 @@
   <div>
     <p class="brand-eyebrow">花田管理 · 種花紀錄</p>
     <h1>🌸 皮克敏<span>花田</span>手記</h1>
-    <p class="sub">記錄花田與冷藏倒數，訪客也能新增花田、設定倒數；已採果／已冰冰箱／待取冰箱僅管理員可標記。</p>
+    <p class="sub">記錄花田與冷藏倒數，訪客也能新增花田、設定倒數；已採果僅管理員可標記。</p>
   </div>
   <div class="head-actions">
     <span class="sync-pill off" id="syncPill"><span class="dot"></span>尚未連接</span>
     <span class="role-tag" id="roleTag">👑 管理員模式</span>
+    <button class="icon-btn" id="refreshBtn" title="重新整理">🔄</button>
     <button class="icon-btn" id="adminToggle" title="管理員登入">🔒</button>
   </div>
 </header>
@@ -731,7 +733,7 @@ let tickHandle = null;
 let adminMode = false;
 let adminIdToken = '';
 let customOpenIds = new Set();
-let currentFilter = 'all';
+let selectedCategories = new Set();
 let currentSearch = '';
 let pendingWrites = {};
 
@@ -859,6 +861,13 @@ document.getElementById('loginModalClose').addEventListener('click', closeLoginM
 document.getElementById('loginModal').addEventListener('click', e=>{
   if(e.target.id === 'loginModal') closeLoginModal();
 });
+document.getElementById('refreshBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  await fetchFields();
+  toast('已重新整理');
+  setTimeout(()=>btn.classList.remove('spinning'), 500);
+});
 
 function loadApiUrl(){
   fetchFields();
@@ -913,19 +922,12 @@ async function fetchFields(){
         if(aCooling && bCooling) return a.timerEnd - b.timerEnd;
         return a.name.localeCompare(b.name, 'zh-Hant');
       });
-      const harvestEntries = (data.log || []).map(l => ({
+      mergedLog = (data.plantLog || []).map(l => ({
         fieldName: l.fieldName,
         species: l.species || '',
-        timestamp: Number(l.timestamp) || 0,
-        type: 'harvest'
-      }));
-      const plantEntries = (data.plantLog || []).map(l => ({
-        fieldName: l.fieldName,
-        species: l.species || '',
-        timestamp: Number(l.timestamp) || 0,
-        type: 'plant'
-      }));
-      mergedLog = harvestEntries.concat(plantEntries).sort((a,b) => b.timestamp - a.timestamp);
+        plantedAt: Number(l.plantedAt) || 0,
+        harvested: l.harvested === true || l.harvested === 'TRUE'
+      })).sort((a,b) => b.plantedAt - a.plantedAt);
       setSyncStatus(true);
       initialLoading = false;
       if(!isEditingField()) render();
@@ -1171,7 +1173,7 @@ function cardTemplate(f){
 function render(){
   const grid = document.getElementById('grid');
   const empty = document.getElementById('emptyState');
-  let visibleFields = currentFilter === 'all' ? fields : fields.filter(f => f.category === currentFilter);
+  let visibleFields = selectedCategories.size === 0 ? fields : fields.filter(f => selectedCategories.has(f.category));
   const keyword = currentSearch.trim().toLowerCase();
   if(keyword){
     visibleFields = visibleFields.filter(f =>
@@ -1289,20 +1291,13 @@ function renderMergedLog(){
   section.style.display = 'block';
   const capped = mergedLog.slice(0, LOG_MAX_COUNT);
   const shown = logExpanded ? capped : capped.slice(0, LOG_PREVIEW_COUNT);
-  listEl.innerHTML = shown.map(l => {
-    const icon = l.type === 'harvest' ? '🧺' : '🌱';
-    const typeLabel = l.type === 'harvest' ? '採果' : '種植';
-    return `
+  listEl.innerHTML = shown.map(l => `
     <li class="log-item">
-      <span class="log-icon">${icon}</span>
-      <span class="log-text">
-        <strong>${escapeHtml(l.fieldName)}</strong>
-        ${l.species ? `<span class="log-species">・${escapeHtml(l.species)}</span>` : ''}
-        <span class="log-type ${l.type}">${typeLabel}</span>
-      </span>
-      <span class="log-time">${formatLogTime(l.timestamp)}</span>
-    </li>`;
-  }).join('');
+      <span class="log-name">🌼<strong>${escapeHtml(l.fieldName)}</strong>${l.species ? `<span class="log-species">・${escapeHtml(l.species)}</span>` : ''}</span>
+      <span class="log-badge plant-badge">🌱 ${formatLogTime(l.plantedAt)} 種植</span>
+      ${l.harvested ? `<span class="log-badge harvest-badge">🧺 沐沐已採果</span>` : ''}
+    </li>`
+  ).join('');
   if(capped.length > LOG_PREVIEW_COUNT){
     btn.style.display = 'block';
     btn.textContent = logExpanded ? '收起' : `展開查看更多（共 ${capped.length} 筆）`;
@@ -1356,9 +1351,20 @@ document.getElementById('grid').addEventListener('focusout', e=>{
 });
 document.querySelectorAll('[data-role="filter"]').forEach(btn=>{
   btn.addEventListener('click', e=>{
-    currentFilter = e.target.dataset.category;
-    document.querySelectorAll('[data-role="filter"]').forEach(b=>b.classList.remove('active'));
-    e.target.classList.add('active');
+    const cat = e.target.dataset.category;
+    if(cat === 'all'){
+      selectedCategories.clear();
+    }else{
+      if(selectedCategories.has(cat)) selectedCategories.delete(cat);
+      else selectedCategories.add(cat);
+    }
+    document.querySelectorAll('[data-role="filter"]').forEach(b=>{
+      if(b.dataset.category === 'all'){
+        b.classList.toggle('active', selectedCategories.size === 0);
+      }else{
+        b.classList.toggle('active', selectedCategories.has(b.dataset.category));
+      }
+    });
     render();
   });
 });
