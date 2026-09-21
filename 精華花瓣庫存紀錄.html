@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌼 花田庫存 精華・花瓣管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --cream:#FFF6E8;
+    --cream-deep:#FBE9CC;
+    --leaf:#3E9166;
+    --leaf-deep:#276148;
+    --ink:#2B4636;
+    --pink:#FF7FA8;
+    --pink-deep:#E85D8D;
+    --yellow:#FFC93C;
+    --sky:#5FC1DE;
+    --purple:#B080E0;
+    --red:#FF6161;
+    --red-deep:#D94A4A;
+    --white:#FFFFFF;
+    --card-shadow: 0 6px 0 rgba(39,97,72,0.14);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+
+  body{
+    margin:0;
+    font-family:"Zen Maru Gothic","Noto Sans TC",sans-serif;
+    background:
+      radial-gradient(circle at 10% 15%, rgba(255,201,60,0.18), transparent 40%),
+      radial-gradient(circle at 90% 10%, rgba(255,127,168,0.16), transparent 45%),
+      radial-gradient(circle at 50% 90%, rgba(95,193,222,0.15), transparent 40%),
+      var(--cream);
+    color:var(--ink);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  .drift{
+    position:fixed;
+    pointer-events:none;
+    z-index:0;
+    opacity:0.55;
+    animation: drift 9s ease-in-out infinite;
+    font-size: clamp(22px, 3vw, 34px);
+  }
+  .drift.d1{ top:10%; left:4%; animation-delay:0s;}
+  .drift.d2{ top:65%; left:2%; animation-delay:1.5s;}
+  .drift.d3{ top:20%; right:5%; animation-delay:0.7s;}
+  .drift.d4{ top:75%; right:6%; animation-delay:2.2s;}
+  .drift.d5{ top:40%; left:1%; animation-delay:3s; font-size:20px;}
+  @keyframes drift{
+    0%,100%{ transform: translateY(0) rotate(-4deg);}
+    50%{ transform: translateY(-22px) rotate(6deg);}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important;}
+  }
+
+  .wrap{
+    position:relative;
+    z-index:1;
+    max-width:1080px;
+    margin:0 auto;
+    padding: 28px 20px 80px;
+  }
+
+  .bloom-strip{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:6px;
+    flex-wrap:wrap;
+  }
+  .bloom-strip span{
+    display:inline-block;
+    font-size: clamp(18px,2.4vw,26px);
+    transform: scale(0);
+    animation: bloom-pop 0.6s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  .bloom-strip span:nth-child(1){animation-delay:.05s;}
+  .bloom-strip span:nth-child(2){animation-delay:.15s;}
+  .bloom-strip span:nth-child(3){animation-delay:.25s;}
+  .bloom-strip span:nth-child(4){animation-delay:.35s;}
+  .bloom-strip span:nth-child(5){animation-delay:.45s;}
+  .bloom-strip span:nth-child(6){animation-delay:.55s;}
+  .bloom-strip span:nth-child(7){animation-delay:.65s;}
+  @keyframes bloom-pop{
+    0%{ transform: scale(0) rotate(-30deg); opacity:0;}
+    70%{ transform: scale(1.25) rotate(8deg); opacity:1;}
+    100%{ transform: scale(1) rotate(0deg); opacity:1;}
+  }
+
+  header{
+    text-align:center;
+    margin-bottom: 28px;
+  }
+  h1{
+    font-family:"Baloo 2","Zen Maru Gothic",sans-serif;
+    font-weight:800;
+    font-size: clamp(26px, 5vw, 42px);
+    margin: 4px 0 8px;
+    color: var(--leaf-deep);
+    letter-spacing: 1px;
+    text-shadow: 3px 3px 0 var(--white), 3px 3px 0 var(--white);
+  }
+  header p.sub{
+    font-size: clamp(13px, 1.8vw, 16px);
+    color: #5C7B6A;
+    margin:0;
+    font-weight:500;
+  }
+  .update-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    margin-top:14px;
+    background: var(--white);
+    border: 2px dashed var(--leaf);
+    color: var(--leaf-deep);
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight:700;
+  }
+  .update-pill button{
+    border:none;
+    background: var(--leaf);
+    color:#fff;
+    font-family: inherit;
+    font-weight:700;
+    font-size:12px;
+    padding:4px 12px;
+    border-radius:999px;
+    cursor:pointer;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .update-pill button:hover{ background: var(--leaf-deep); transform: translateY(-1px);}
+  .update-pill button:active{ transform: translateY(1px) scale(.96);}
+
+  .admin-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    margin-top:10px;
+    background: var(--white);
+    border: 2px dashed var(--purple);
+    color: #6B4A9A;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight:700;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  #googleSignInBtn{ line-height:0; }
+  .admin-pill.is-admin{
+    border-color: var(--leaf);
+    color: var(--leaf-deep);
+    background: #EAF6EE;
+  }
+  .admin-pill button{
+    border:none;
+    font-family: inherit;
+    font-weight:700;
+    font-size:12px;
+    padding:4px 12px;
+    border-radius:999px;
+    cursor:pointer;
+    transition: transform .15s ease, background .15s ease;
+    background: var(--purple);
+    color:#fff;
+  }
+  .admin-pill.is-admin button{ background:#D8464E;}
+  .admin-pill button:hover{ transform: translateY(-1px); filter:brightness(1.05);}
+  .admin-pill button:active{ transform: translateY(1px) scale(.96);}
+
+  .backend-hint{
+    margin-top:8px;
+    font-size:11.5px;
+    color:#A6947A;
+    text-align:center;
+  }
+
+  /* ---------- section headings ---------- */
+  .section-title{
+    font-family:"Baloo 2",sans-serif;
+    font-weight:700;
+    font-size: 20px;
+    color: var(--leaf-deep);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin: 34px 0 16px;
+  }
+  .section-title .count-hint{
+    font-family:"Zen Maru Gothic",sans-serif;
+    font-size:12px;
+    font-weight:700;
+    color:#7C9686;
+    background:#EFF7F1;
+    padding:3px 10px;
+    border-radius:999px;
+  }
+
+  /* ---------- essence cards ---------- */
+  .essence-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .essence-card{
+    background: var(--white);
+    border-radius: 20px;
+    padding: 16px 16px 14px;
+    box-shadow: var(--card-shadow);
+    border: 3px solid rgba(39,97,72,0.06);
+    text-align:center;
+    opacity:0;
+    transform: translateY(14px) scale(.97);
+    animation: card-in .5s ease forwards;
+  }
+  @keyframes card-in{ to{ opacity:1; transform: translateY(0) scale(1);} }
+  .essence-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-weight:800;
+    font-size:14px;
+    padding:5px 14px;
+    border-radius:999px;
+    margin-bottom:10px;
+  }
+  .essence-qty{
+    font-family:"Baloo 2",monospace;
+    font-size: 34px;
+    font-weight:800;
+    color: var(--ink);
+    margin-bottom:10px;
+  }
+  .qty-control{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+  .qty-btn{
+    border:none;
+    cursor:pointer;
+    font-family:"Baloo 2",sans-serif;
+    font-weight:800;
+    font-size:15px;
+    width:32px; height:32px;
+    border-radius: 10px;
+    background: #EAF3EC;
+    color: var(--leaf-deep);
+    transition: transform .15s ease, background .15s ease;
+  }
+  .qty-btn:hover{ background:#DCEEE1; transform: translateY(-1px);}
+  .qty-btn:active{ transform: translateY(1px) scale(.92);}
+  .qty-btn.big{ background:#E4F3F8; color:#2C7A93; font-size:12px; width:auto; padding:0 10px;}
+  .qty-btn.big:hover{ background:#D3ECF3;}
+  .qty-input{
+    width:64px;
+    font-family:"Baloo 2",monospace;
+    font-size:16px;
+    font-weight:700;
+    text-align:center;
+    padding: 6px 4px;
+    border-radius: 10px;
+    border: 2px solid #D9E8DD;
+    outline:none;
+    color: var(--ink);
+    background:#FBFAF6;
+  }
+  .qty-input:focus{ border-color: var(--leaf);}
+  .qty-input:disabled{
+    background:#F5F3EE; border-color:#E5E0D6; color:#8A806E; cursor:not-allowed;
+  }
+  .locked-hint{
+    font-size:11.5px;
+    color:#A6947A;
+    margin-top:4px;
+  }
+
+  /* ---------- filter / search ---------- */
+  .filter-bar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    justify-content:center;
+    margin: 18px 0 20px;
+  }
+  .chip{
+    border: none;
+    cursor:pointer;
+    font-family:"Zen Maru Gothic",sans-serif;
+    font-weight:700;
+    font-size:14px;
+    padding: 9px 18px;
+    border-radius: 999px;
+    background: var(--white);
+    color: var(--ink);
+    box-shadow: 0 3px 0 rgba(43,70,54,0.15);
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease, color .15s ease;
+  }
+  .chip:hover{ transform: translateY(-2px);}
+  .chip.active{
+    background: var(--leaf);
+    color:#fff;
+    box-shadow: 0 3px 0 var(--leaf-deep);
+  }
+  .chip .dot{ width:10px;height:10px;border-radius:50%; display:inline-block; }
+
+  .search-box{
+    display:flex;
+    justify-content:center;
+    margin-bottom: 24px;
+  }
+  .search-box input{
+    width:100%;
+    max-width:360px;
+    font-family:"Zen Maru Gothic",sans-serif;
+    font-size:14px;
+    font-weight:600;
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 2px solid #E3D9C4;
+    outline:none;
+    background: var(--white);
+    color: var(--ink);
+    text-align:center;
+  }
+  .search-box input:focus{ border-color: var(--leaf); }
+
+  /* ---------- petal cards ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 18px;
+  }
+  .card{
+    background: var(--white);
+    border-radius: 22px;
+    padding: 18px 18px 16px;
+    box-shadow: var(--card-shadow);
+    border: 3px solid rgba(39,97,72,0.06);
+    transition: transform .2s ease, box-shadow .2s ease;
+    opacity:0;
+    transform: translateY(14px) scale(.97);
+    animation: card-in .5s ease forwards;
+  }
+  .card:hover{
+    transform: translateY(-3px);
+    box-shadow: 0 9px 0 rgba(39,97,72,0.14);
+  }
+  .card-loc{
+    font-family:"Baloo 2",sans-serif;
+    font-weight:700;
+    font-size: 17px;
+    color: var(--leaf-deep);
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin-bottom: 12px;
+  }
+  .color-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding: 7px 10px;
+    border-radius: 12px;
+    background: #FAF7F0;
+    margin-bottom: 8px;
+    flex-wrap:wrap;
+  }
+  .color-row.dimmed{ opacity:0.35; }
+  .color-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-weight:800;
+    font-size:12.5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space:nowrap;
+  }
+  .color-tag.c-white{ background:#fff; color:#7A5A2C; border:2px solid #E3C48F; }
+  .color-tag.c-yellow{ background: var(--yellow); color:#6B4A00; }
+  .color-tag.c-red{ background: var(--red); color:#fff; }
+  .color-tag.c-blue{ background: var(--sky); color:#fff; }
+
+  .readonly-qty{
+    font-family:"Baloo 2",monospace;
+    font-weight:800;
+    font-size:16px;
+    color: var(--ink);
+  }
+
+  .empty{
+    text-align:center;
+    grid-column: 1/-1;
+    padding: 50px 20px;
+    color:#7C9686;
+    font-weight:600;
+  }
+  .empty .emoji{ font-size:40px; display:block; margin-bottom:10px;}
+
+  footer.credit{
+    text-align:center;
+    margin-top: 46px;
+    font-size:12px;
+    color:#9AA88E;
+    line-height:1.7;
+  }
+
+  @media (max-width:520px){
+    .filter-bar{ gap:8px;}
+    .chip{ padding:7px 14px; font-size:13px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ---------- back to index ---------- -->
+<a href="index.html" style="
+  position:fixed; top:16px; left:16px; z-index:200;
+  display:inline-flex; align-items:center; gap:6px;
+  background:#3E9166; color:#fff; text-decoration:none;
+  font-family:'Zen Maru Gothic','Noto Sans TC',sans-serif; font-weight:700; font-size:13.5px;
+  padding:9px 16px; border-radius:999px; box-shadow:0 3px 0 #276148;
+  transition:transform .15s ease, box-shadow .15s ease;
+" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">← 回首頁</a>
+
+<span class="drift d1">🍃</span>
+<span class="drift d2">🌱</span>
+<span class="drift d3">🍃</span>
+<span class="drift d4">🌱</span>
+<span class="drift d5">🍃</span>
+
+<div class="wrap">
+
+  <div class="bloom-strip" aria-hidden="true">
+    <span>🌸</span><span>🌼</span><span>🌷</span><span>🌺</span><span>🌻</span><span>🌹</span><span>💮</span>
+  </div>
+
+  <header>
+    <h1>花田庫存 精華・花瓣</h1>
+    <p class="sub">皮克敏花田物資紀錄，資料同步自 Google 試算表 🌱</p>
+    <div class="update-pill">
+      <span id="updateTime">尚未讀取</span>
+      <button id="refreshBtn" type="button">🔄 重新整理</button>
+    </div>
+    <div class="admin-pill" id="adminPill">
+      <span id="adminStatusText">🔒 訪客模式（僅檢視）</span>
+      <div id="googleSignInBtn"></div>
+      <button id="logoutBtn" type="button" style="display:none;">登出</button>
+    </div>
+    <div id="backendHint" class="backend-hint"></div>
+  </header>
+
+  <!-- ---------- 精華庫存 ---------- -->
+  <h2 class="section-title">✨ 精華庫存</h2>
+  <div class="essence-grid" id="essenceGrid"></div>
+
+  <!-- ---------- 花瓣庫存 ---------- -->
+  <h2 class="section-title">🌸 花瓣庫存 <span class="count-hint" id="petalCountHint"></span></h2>
+  <nav class="filter-bar" id="colorFilterBar" aria-label="依花色篩選"></nav>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="🔍 搜尋花種名稱…" />
+  </div>
+  <main class="grid" id="petalGrid"></main>
+
+  <footer class="credit">
+    🌷 本頁面為花田物資庫存紀錄，資料由管理員登入後維護更新 🌷<br>
+    新增花種請直接在 Google 試算表「花瓣」工作表新增一列即可
+  </footer>
+
+</div>
+
+<script>
+  /* =====================================================================
+     【設定區】
+     1) API_URL：部署好 Google Apps Script 後，把「網頁應用程式網址」貼在這裡
+        格式類似：https://script.google.com/macros/s/AKfycb.../exec
+        沒有設定（保持空字串）的話，網站會用本地示範資料運作，
+        所有人看到的數字只存在自己瀏覽器裡、不會互相同步。
+     2) GOOGLE_CLIENT_ID：Google Cloud Console 的 OAuth 用戶端 ID，
+        必須跟 Code.gs 裡的 OAUTH_CLIENT_ID 完全一致，管理員才能登入。
+  ===================================================================== */
+  const API_URL = ""; // TODO: 部署後貼上 /exec 網址
+  const GOOGLE_CLIENT_ID = "1001037373208-3sdt3t6aekf1v0efidd53ob62m92t2nl.apps.googleusercontent.com";
+
+  const COLOR_ORDER = ["白", "黃", "紅", "藍"];
+  const COLOR_META = {
+    "白": { cls: "c-white", emoji: "🤍" },
+    "黃": { cls: "c-yellow", emoji: "💛" },
+    "紅": { cls: "c-red",   emoji: "❤️" },
+    "藍": { cls: "c-blue",  emoji: "💙" },
+  };
+
+  // 目前的花種清單（僅本地示範模式／尚未接後端時使用）
+  const SPECIES_LIST = [
+    ["銀蓮花","WYRB"], ["九重葛","WYRB"], ["海芋","WYRB"], ["山茶花","WYRB"],
+    ["油菜花","WYB"], ["康乃馨","WYRB"], ["嘉德麗雅蘭","WYRB"], ["雞冠花","WYRB"],
+    ["櫻花","W"], ["菊花","WYRB"], ["鐵線蓮","WYRB"], ["彼岸花","WYR"],
+    ["鈴蘭","WR"], ["大波斯菊","WYR"], ["兔耳花","WRB"], ["大理花","WYRB"],
+    ["石竹","WRB"], ["小蒼蘭","WYRB"], ["龍膽","WRB"], ["聖誕玫瑰","WYRB"],
+    ["扶桑花","WYRB"], ["風信子","WYRB"], ["繡球花","WRB"], ["鳶尾花","WYRB"],
+    ["百合","WYR"], ["萬壽菊","WYR"], ["牽牛花","WYRB"], ["蝴蝶蘭","WYRB"],
+    ["水仙","WY"], ["粉蝶花","B"], ["睡蓮","WYRB"], ["三色菫","WYRB"],
+    ["牡丹","WYRB"], ["矮牽牛","WYRB"], ["梅花","WYR"], ["雞蛋花","WYR"],
+    ["聖誕紅","WYRB"], ["櫻草花","WYRB"], ["玫瑰","WYRB"], ["週年紀念玫瑰","WYRB"],
+    ["鼠尾草","WYRB"], ["金魚草","WYRB"], ["雪花蓮","WYR"], ["天堂鳥","WYR"],
+    ["向日葵","Y"], ["豌豆花","WYRB"], ["鬱金香","WYRB"], ["鸚鵡鬱金香","WYRB"],
+    ["勿忘草","WYRB"], ["曇花","WYRB"], ["美人蕉","WYR"], ["洋桔梗","WYRB"],
+  ];
+  const CODE_TO_COLOR = { W:"白", Y:"黃", R:"紅", B:"藍" };
+
+  function buildFallback(){
+    const essence = COLOR_ORDER.map(c => ({ color: c, qty: 0 }));
+    const petals = [];
+    SPECIES_LIST.forEach(([name, codes]) => {
+      codes.split('').forEach(code => petals.push({ species: name, color: CODE_TO_COLOR[code], qty: 0 }));
+    });
+    return { essence, petals };
+  }
+
+  let essenceData = [];   // [{color, qty}]
+  let petalData = [];     // [{species, color, qty}]
+  let speciesOrder = [];  // 花種顯示順序（依第一次出現的順序）
+
+  let isAdmin = false;
+  let idToken = null;
+  let adminEmail = null;
+  let adminName = null;
+
+  let activeColor = "全部";
+  let searchTerm = "";
+
+  function escapeHtml(str){
+    return String(str == null ? '' : str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  /* ---------------- 讀取資料 ---------------- */
+  async function loadData(){
+    if(!API_URL){
+      const fb = buildFallback();
+      essenceData = fb.essence;
+      petalData = fb.petals;
+      afterLoad();
+      return;
+    }
+    try{
+      const res = await fetch(`${API_URL}?action=list`);
+      const data = await res.json();
+      if(data.ok){
+        essenceData = data.essence;
+        petalData = data.petals;
+      }
+      afterLoad();
+    } catch(err){
+      console.error('讀取庫存失敗', err);
+    }
+  }
+
+  function afterLoad(){
+    speciesOrder = [];
+    const seen = new Set();
+    petalData.forEach(p => { if(!seen.has(p.species)){ seen.add(p.species); speciesOrder.push(p.species); } });
+
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('updateTime').textContent = `更新於 今天 ${hh}:${mm}`;
+
+    renderColorChips();
+    renderEssence();
+    renderPetals();
+  }
+
+  /* ---------------- 精華區塊 ---------------- */
+  function renderEssence(){
+    const grid = document.getElementById('essenceGrid');
+    grid.innerHTML = "";
+    COLOR_ORDER.forEach((color, i) => {
+      const item = essenceData.find(e => e.color === color) || { color, qty: 0 };
+      const meta = COLOR_META[color];
+      const card = document.createElement('div');
+      card.className = 'essence-card';
+      card.style.animationDelay = (i * 0.06) + 's';
+
+      const controlsHtml = isAdmin ? `
+        <div class="qty-control">
+          <button class="qty-btn" data-kind="essence" data-color="${color}" data-delta="-5" type="button">－5</button>
+          <button class="qty-btn" data-kind="essence" data-color="${color}" data-delta="-1" type="button">－1</button>
+          <input type="number" class="qty-input" min="0" value="${item.qty}" data-kind="essence" data-color="${color}" />
+          <button class="qty-btn" data-kind="essence" data-color="${color}" data-delta="1" type="button">＋1</button>
+          <button class="qty-btn" data-kind="essence" data-color="${color}" data-delta="5" type="button">＋5</button>
+        </div>
+      ` : `<div class="locked-hint">🔒 僅管理員可調整</div>`;
+
+      card.innerHTML = `
+        <span class="essence-tag color-tag ${meta.cls}">${meta.emoji} ${color}精華</span>
+        <div class="essence-qty" id="essence-qty-${color}">${item.qty}</div>
+        ${controlsHtml}
+      `;
+      grid.appendChild(card);
+    });
+
+    grid.querySelectorAll('.qty-btn[data-delta]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const color = btn.dataset.color;
+        const delta = Number(btn.dataset.delta);
+        updateEssenceQty(color, { delta });
+      });
+    });
+    grid.querySelectorAll('.qty-input[data-kind="essence"]').forEach(input => {
+      input.addEventListener('change', () => {
+        const color = input.dataset.color;
+        const qty = Math.max(0, Math.floor(Number(input.value) || 0));
+        updateEssenceQty(color, { qty });
+      });
+    });
+  }
+
+  async function updateEssenceQty(color, { delta, qty }){
+    if(!isAdmin) return;
+    if(!API_URL){
+      const item = essenceData.find(e => e.color === color);
+      if(item){
+        item.qty = qty !== undefined ? qty : Math.max(0, item.qty + delta);
+      }
+      renderEssence();
+      return;
+    }
+    try{
+      const params = new URLSearchParams({ action: 'updateEssence', color, idToken });
+      if(qty !== undefined) params.set('qty', qty); else params.set('delta', delta);
+      const res = await fetch(`${API_URL}?${params.toString()}`);
+      const data = await res.json();
+      if(!data.ok){ alert('更新失敗：' + (data.error || '未知錯誤')); await loadData(); return; }
+      const item = essenceData.find(e => e.color === color);
+      if(item) item.qty = data.qty;
+      renderEssence();
+    } catch(err){
+      alert('連線失敗，請檢查網路連線');
+    }
+  }
+
+  /* ---------------- 花色篩選 chips ---------------- */
+  function renderColorChips(){
+    const bar = document.getElementById('colorFilterBar');
+    bar.innerHTML = "";
+    const options = [{ key: "全部", emoji: "🌈" }, ...COLOR_ORDER.map(c => ({ key: c, emoji: COLOR_META[c].emoji }))];
+    options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'chip' + (opt.key === activeColor ? ' active' : '');
+      btn.type = 'button';
+      btn.innerHTML = `${opt.emoji} ${opt.key}`;
+      btn.addEventListener('click', () => { activeColor = opt.key; renderColorChips(); renderPetals(); });
+      bar.appendChild(btn);
+    });
+  }
+
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    searchTerm = e.target.value.trim();
+    renderPetals();
+  });
+
+  /* ---------------- 花瓣區塊 ---------------- */
+  function renderPetals(){
+    const grid = document.getElementById('petalGrid');
+    grid.innerHTML = "";
+
+    let species = speciesOrder.filter(name => {
+      if(searchTerm && !name.includes(searchTerm)) return false;
+      if(activeColor !== "全部"){
+        const has = petalData.some(p => p.species === name && p.color === activeColor);
+        if(!has) return false;
+      }
+      return true;
+    });
+
+    document.getElementById('petalCountHint').textContent = `共 ${speciesOrder.length} 種花`;
+
+    if(species.length === 0){
+      grid.innerHTML = `<div class="empty"><span class="emoji">🌱</span>找不到符合條件的花種，換個篩選或關鍵字看看吧。</div>`;
+      return;
+    }
+
+    species.forEach((name, i) => grid.appendChild(createSpeciesCard(name, i)));
+  }
+
+  function createSpeciesCard(name, i){
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.animationDelay = (i * 0.04) + 's';
+
+    const rows = petalData.filter(p => p.species === name);
+
+    const rowsHtml = COLOR_ORDER
+      .map(color => rows.find(r => r.color === color))
+      .filter(Boolean)
+      .map(item => {
+        const meta = COLOR_META[item.color];
+        const dimmed = (activeColor !== "全部" && activeColor !== item.color) ? ' dimmed' : '';
+        const controlsHtml = isAdmin ? `
+          <div class="qty-control">
+            <button class="qty-btn" data-kind="petal" data-species="${escapeHtml(name)}" data-color="${item.color}" data-delta="-1" type="button">－</button>
+            <input type="number" class="qty-input" min="0" value="${item.qty}" data-kind="petal" data-species="${escapeHtml(name)}" data-color="${item.color}" />
+            <button class="qty-btn" data-kind="petal" data-species="${escapeHtml(name)}" data-color="${item.color}" data-delta="1" type="button">＋</button>
+          </div>
+        ` : `<span class="readonly-qty">${item.qty}</span>`;
+
+        return `
+          <div class="color-row${dimmed}">
+            <span class="color-tag ${meta.cls}">${meta.emoji} ${item.color}</span>
+            ${controlsHtml}
+          </div>
+        `;
+      }).join("");
+
+    card.innerHTML = `
+      <div class="card-loc">🌼 ${escapeHtml(name)}</div>
+      ${rowsHtml}
+    `;
+
+    card.querySelectorAll('.qty-btn[data-delta]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const species = btn.dataset.species;
+        const color = btn.dataset.color;
+        const delta = Number(btn.dataset.delta);
+        updatePetalQty(species, color, { delta });
+      });
+    });
+    card.querySelectorAll('.qty-input[data-kind="petal"]').forEach(input => {
+      input.addEventListener('change', () => {
+        const species = input.dataset.species;
+        const color = input.dataset.color;
+        const qty = Math.max(0, Math.floor(Number(input.value) || 0));
+        updatePetalQty(species, color, { qty });
+      });
+    });
+
+    return card;
+  }
+
+  async function updatePetalQty(species, color, { delta, qty }){
+    if(!isAdmin) return;
+    if(!API_URL){
+      const item = petalData.find(p => p.species === species && p.color === color);
+      if(item) item.qty = qty !== undefined ? qty : Math.max(0, item.qty + delta);
+      renderPetals();
+      return;
+    }
+    try{
+      const params = new URLSearchParams({ action: 'updatePetal', species, color, idToken });
+      if(qty !== undefined) params.set('qty', qty); else params.set('delta', delta);
+      const res = await fetch(`${API_URL}?${params.toString()}`);
+      const data = await res.json();
+      if(!data.ok){ alert('更新失敗：' + (data.error || '未知錯誤')); await loadData(); return; }
+      const item = petalData.find(p => p.species === species && p.color === color);
+      if(item) item.qty = data.qty;
+      renderPetals();
+    } catch(err){
+      alert('連線失敗，請檢查網路連線');
+    }
+  }
+
+  /* ---------------- 管理員登入（Google 帳號） ---------------- */
+  const adminPill = document.getElementById('adminPill');
+  const adminStatusText = document.getElementById('adminStatusText');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const googleBtnContainer = document.getElementById('googleSignInBtn');
+
+  function refreshAdminPill(){
+    if(isAdmin){
+      adminPill.classList.add('is-admin');
+      adminStatusText.textContent = `🔓 管理員（${adminName || adminEmail || ''}）`;
+      googleBtnContainer.style.display = 'none';
+      logoutBtn.style.display = 'inline-flex';
+    } else {
+      adminPill.classList.remove('is-admin');
+      adminStatusText.textContent = '🔒 訪客模式（僅檢視）';
+      googleBtnContainer.style.display = '';
+      logoutBtn.style.display = 'none';
+    }
+  }
+
+  function decodeJwtPayload(token){
+    try{
+      const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+      const json = decodeURIComponent(atob(base64).split('').map(c =>
+        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+      ).join(''));
+      return JSON.parse(json);
+    } catch(err){ return null; }
+  }
+
+  async function handleGoogleCredential(response){
+    const token = response.credential;
+
+    if(!API_URL){
+      const payload = decodeJwtPayload(token);
+      alert('尚未設定後端網址（API_URL），目前為本地示範模式，先讓你預覽管理員畫面。\n部署好 Apps Script 後，才會是真正安全的登入驗證。');
+      isAdmin = true;
+      idToken = token;
+      adminEmail = payload && payload.email ? payload.email : '示範模式';
+      adminName = payload && payload.name ? payload.name : adminEmail;
+      refreshAdminPill();
+      renderEssence();
+      renderPetals();
+      return;
+    }
+
+    try{
+      const res = await fetch(`${API_URL}?action=login&idToken=${encodeURIComponent(token)}`);
+      const data = await res.json();
+      if(data.ok){
+        isAdmin = true;
+        idToken = token;
+        adminEmail = data.email;
+        adminName = data.name || data.email;
+        refreshAdminPill();
+        renderEssence();
+        renderPetals();
+      } else {
+        alert('登入失敗：' + (data.error || '此帳號沒有管理員權限'));
+      }
+    } catch(err){
+      alert('登入驗證失敗，請檢查網路連線');
+    }
+  }
+
+  function initGoogleSignIn(){
+    if(!GOOGLE_CLIENT_ID){
+      googleBtnContainer.innerHTML = '<span style="font-size:11px;color:#A6947A;">尚未設定 Google 登入</span>';
+      return;
+    }
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredential,
+    });
+    google.accounts.id.renderButton(googleBtnContainer, {
+      theme: 'outline', size: 'medium', shape: 'pill', text: 'signin_with',
+    });
+  }
+
+  function waitForGoogleAndInit(retriesLeft){
+    if(retriesLeft === undefined) retriesLeft = 20;
+    if(window.google && window.google.accounts && window.google.accounts.id){
+      initGoogleSignIn();
+      return;
+    }
+    if(retriesLeft <= 0){
+      googleBtnContainer.innerHTML = '<span style="font-size:11px;color:#A6947A;">Google 登入元件載入失敗，請檢查網路連線後重新整理</span>';
+      return;
+    }
+    setTimeout(() => waitForGoogleAndInit(retriesLeft - 1), 250);
+  }
+
+  logoutBtn.addEventListener('click', () => {
+    isAdmin = false;
+    idToken = null;
+    adminEmail = null;
+    adminName = null;
+    if(window.google && window.google.accounts){
+      google.accounts.id.disableAutoSelect();
+    }
+    refreshAdminPill();
+    renderEssence();
+    renderPetals();
+  });
+
+  document.getElementById('refreshBtn').addEventListener('click', loadData);
+
+  refreshAdminPill();
+  waitForGoogleAndInit();
+  loadData();
+
+  const backendHintEl = document.getElementById('backendHint');
+  backendHintEl.textContent = API_URL
+    ? '🌐 已連接雲端資料庫，所有人看到同一份即時庫存'
+    : '💻 尚未設定後端網址，目前為本地示範模式（資料僅存在你自己的瀏覽器）';
+
+  if(API_URL){
+    setInterval(loadData, 20000);
+  }
+</script>
+
+</body>
+</html>
