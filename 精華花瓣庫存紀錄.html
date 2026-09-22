@@ -117,11 +117,18 @@
     margin:0;
     font-weight:500;
   }
+  .status-row{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    margin: 14px auto 0;
+  }
   .update-pill{
-    display:inline-flex;
+    display:flex;
     align-items:center;
     gap:6px;
-    margin-top:14px;
     background: var(--white);
     border: 2px dashed var(--leaf);
     color: var(--leaf-deep);
@@ -146,10 +153,9 @@
   .update-pill button:active{ transform: translateY(1px) scale(.96);}
 
   .sync-pill{
-    display:inline-flex;
+    display:flex;
     align-items:center;
     gap:6px;
-    margin-top:8px;
     padding: 4px 14px;
     border-radius: 999px;
     font-size: 12px;
@@ -174,10 +180,11 @@
   }
 
   .admin-pill{
-    display:inline-flex;
+    display:flex;
+    width:fit-content;
+    margin: 10px auto 0;
     align-items:center;
     gap:8px;
-    margin-top:10px;
     background: var(--white);
     border: 2px dashed var(--purple);
     color: #6B4A9A;
@@ -581,11 +588,13 @@
   <header>
     <h1>花田庫存 精華・花瓣</h1>
     <p class="sub">皮克敏花田物資紀錄 🌱</p>
-    <div class="update-pill">
-      <span id="updateTime">尚未讀取</span>
-      <button id="refreshBtn" type="button">🔄 重新整理</button>
+    <div class="status-row">
+      <div class="update-pill">
+        <span id="updateTime">尚未讀取</span>
+        <button id="refreshBtn" type="button">🔄 重新整理</button>
+      </div>
+      <div class="sync-pill" id="syncPill"><span class="dot"></span><span id="syncText">尚未同步</span></div>
     </div>
-    <div class="sync-pill" id="syncPill"><span class="dot"></span><span id="syncText">尚未同步</span></div>
     <div class="admin-pill" id="adminPill">
       <span id="adminStatusText">🔒 訪客模式（僅檢視）</span>
       <div id="googleSignInBtn"></div>
