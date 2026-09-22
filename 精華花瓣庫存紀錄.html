@@ -732,7 +732,7 @@
         setSyncStatus('synced', `✅ 已同步（${hh2}:${mm2}）`);
       } else {
         afterLoad();
-        setSyncStatus('error', '⚠️ 同步失敗，顯示可能不是最新資料');
+        setSyncStatus('error', '⚠️ 連線失敗，顯示可能不是最新資料');
       }
     } catch(err){
       console.error('讀取庫存失敗', err);
@@ -1104,7 +1104,7 @@
 
   const backendHintEl = document.getElementById('backendHint');
   backendHintEl.textContent = API_URL
-    ? '🌐 已連接雲端資料庫，所有人看到同一份即時庫存'
+    ? '🌐 已連接雲端資料庫'
     : '💻 尚未設定後端網址，目前為本地示範模式（資料僅存在你自己的瀏覽器）';
 
   if(API_URL){
