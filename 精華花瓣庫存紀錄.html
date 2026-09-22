@@ -189,6 +189,33 @@
     text-align:center;
   }
 
+  /* ---------- overview strip ---------- */
+  .overview{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin: 22px 0 8px;
+  }
+  .overview-card{
+    background: var(--white);
+    border-radius: 16px;
+    padding: 10px 14px;
+    box-shadow: 0 4px 0 rgba(39,97,72,0.10);
+    text-align:center;
+  }
+  .overview-card .tag{
+    font-size:12px; font-weight:800; padding:2px 10px; border-radius:999px; display:inline-block; margin-bottom:6px;
+  }
+  .overview-card .nums{
+    font-family:"Baloo 2",monospace;
+    font-size:13px;
+    font-weight:700;
+    color:#5C7B6A;
+    display:flex;
+    justify-content:center;
+    gap:10px;
+  }
+
   /* ---------- section headings ---------- */
   .section-title{
     font-family:"Baloo 2",sans-serif;
@@ -198,7 +225,7 @@
     display:flex;
     align-items:center;
     gap:8px;
-    margin: 34px 0 16px;
+    margin: 30px 0 16px;
   }
   .section-title .count-hint{
     font-family:"Zen Maru Gothic",sans-serif;
@@ -208,88 +235,6 @@
     background:#EFF7F1;
     padding:3px 10px;
     border-radius:999px;
-  }
-
-  /* ---------- essence cards ---------- */
-  .essence-grid{
-    display:grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    margin-bottom: 8px;
-  }
-  .essence-card{
-    background: var(--white);
-    border-radius: 20px;
-    padding: 16px 16px 14px;
-    box-shadow: var(--card-shadow);
-    border: 3px solid rgba(39,97,72,0.06);
-    text-align:center;
-    opacity:0;
-    transform: translateY(14px) scale(.97);
-    animation: card-in .5s ease forwards;
-  }
-  @keyframes card-in{ to{ opacity:1; transform: translateY(0) scale(1);} }
-  .essence-tag{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    font-weight:800;
-    font-size:14px;
-    padding:5px 14px;
-    border-radius:999px;
-    margin-bottom:10px;
-  }
-  .essence-qty{
-    font-family:"Baloo 2",monospace;
-    font-size: 34px;
-    font-weight:800;
-    color: var(--ink);
-    margin-bottom:10px;
-  }
-  .qty-control{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:6px;
-    flex-wrap:wrap;
-  }
-  .qty-btn{
-    border:none;
-    cursor:pointer;
-    font-family:"Baloo 2",sans-serif;
-    font-weight:800;
-    font-size:15px;
-    width:32px; height:32px;
-    border-radius: 10px;
-    background: #EAF3EC;
-    color: var(--leaf-deep);
-    transition: transform .15s ease, background .15s ease;
-  }
-  .qty-btn:hover{ background:#DCEEE1; transform: translateY(-1px);}
-  .qty-btn:active{ transform: translateY(1px) scale(.92);}
-  .qty-btn.big{ background:#E4F3F8; color:#2C7A93; font-size:12px; width:auto; padding:0 10px;}
-  .qty-btn.big:hover{ background:#D3ECF3;}
-  .qty-input{
-    width:64px;
-    font-family:"Baloo 2",monospace;
-    font-size:16px;
-    font-weight:700;
-    text-align:center;
-    padding: 6px 4px;
-    border-radius: 10px;
-    border: 2px solid #D9E8DD;
-    outline:none;
-    color: var(--ink);
-    background:#FBFAF6;
-  }
-  .qty-input:focus{ border-color: var(--leaf);}
-  .qty-input:disabled{
-    background:#F5F3EE; border-color:#E5E0D6; color:#8A806E; cursor:not-allowed;
-  }
-  .locked-hint{
-    font-size:11.5px;
-    color:#A6947A;
-    margin-top:4px;
   }
 
   /* ---------- filter / search ---------- */
@@ -322,7 +267,6 @@
     color:#fff;
     box-shadow: 0 3px 0 var(--leaf-deep);
   }
-  .chip .dot{ width:10px;height:10px;border-radius:50%; display:inline-block; }
 
   .search-box{
     display:flex;
@@ -345,10 +289,10 @@
   }
   .search-box input:focus{ border-color: var(--leaf); }
 
-  /* ---------- petal cards ---------- */
+  /* ---------- species cards ---------- */
   .grid{
     display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 18px;
   }
   .card{
@@ -362,6 +306,7 @@
     transform: translateY(14px) scale(.97);
     animation: card-in .5s ease forwards;
   }
+  @keyframes card-in{ to{ opacity:1; transform: translateY(0) scale(1);} }
   .card:hover{
     transform: translateY(-3px);
     box-shadow: 0 9px 0 rgba(39,97,72,0.14);
@@ -376,18 +321,13 @@
     gap:6px;
     margin-bottom: 12px;
   }
-  .color-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;
-    padding: 7px 10px;
-    border-radius: 12px;
+  .color-block{
+    border-radius: 14px;
     background: #FAF7F0;
-    margin-bottom: 8px;
-    flex-wrap:wrap;
+    padding: 10px 12px;
+    margin-bottom: 10px;
   }
-  .color-row.dimmed{ opacity:0.35; }
+  .color-block.dimmed{ opacity:0.35; }
   .color-tag{
     display:inline-flex;
     align-items:center;
@@ -397,17 +337,78 @@
     padding: 4px 10px;
     border-radius: 999px;
     white-space:nowrap;
+    margin-bottom: 8px;
   }
   .color-tag.c-white{ background:#fff; color:#7A5A2C; border:2px solid #E3C48F; }
   .color-tag.c-yellow{ background: var(--yellow); color:#6B4A00; }
   .color-tag.c-red{ background: var(--red); color:#fff; }
   .color-tag.c-blue{ background: var(--sky); color:#fff; }
 
+  .stock-line{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom: 6px;
+  }
+  .stock-line:last-child{ margin-bottom:0; }
+  .stock-label{
+    font-size:12px;
+    font-weight:700;
+    color:#7C9686;
+    flex-shrink:0;
+    min-width:40px;
+  }
+  .stock-label.essence{ color: var(--pink-deep); }
+  .stock-label.petal{ color: #2C7A93; }
+
+  .qty-control{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    flex-wrap:wrap;
+  }
+  .qty-btn{
+    border:none;
+    cursor:pointer;
+    font-family:"Baloo 2",sans-serif;
+    font-weight:800;
+    font-size:14px;
+    width:26px; height:26px;
+    border-radius: 8px;
+    background: #EAF3EC;
+    color: var(--leaf-deep);
+    transition: transform .15s ease, background .15s ease;
+  }
+  .qty-btn:hover{ background:#DCEEE1; transform: translateY(-1px);}
+  .qty-btn:active{ transform: translateY(1px) scale(.92);}
+  .qty-input{
+    width:56px;
+    font-family:"Baloo 2",monospace;
+    font-size:14px;
+    font-weight:700;
+    text-align:center;
+    padding: 4px 2px;
+    border-radius: 8px;
+    border: 2px solid #D9E8DD;
+    outline:none;
+    color: var(--ink);
+    background:#FBFAF6;
+  }
+  .qty-input:focus{ border-color: var(--leaf);}
   .readonly-qty{
     font-family:"Baloo 2",monospace;
     font-weight:800;
-    font-size:16px;
+    font-size:15px;
     color: var(--ink);
+  }
+
+  .locked-hint{
+    font-size:11px;
+    color:#A6947A;
+    text-align:center;
+    margin-top:10px;
   }
 
   .empty{
@@ -472,21 +473,20 @@
     <div id="backendHint" class="backend-hint"></div>
   </header>
 
-  <!-- ---------- 精華庫存 ---------- -->
-  <h2 class="section-title">✨ 精華庫存</h2>
-  <div class="essence-grid" id="essenceGrid"></div>
+  <!-- ---------- 總覽（唯讀，依顏色加總） ---------- -->
+  <div class="overview" id="overviewGrid"></div>
 
-  <!-- ---------- 花瓣庫存 ---------- -->
-  <h2 class="section-title">🌸 花瓣庫存 <span class="count-hint" id="petalCountHint"></span></h2>
+  <!-- ---------- 花種庫存 ---------- -->
+  <h2 class="section-title">🌸 花種庫存 <span class="count-hint" id="speciesCountHint"></span></h2>
   <nav class="filter-bar" id="colorFilterBar" aria-label="依花色篩選"></nav>
   <div class="search-box">
     <input type="text" id="searchInput" placeholder="🔍 搜尋花種名稱…" />
   </div>
-  <main class="grid" id="petalGrid"></main>
+  <main class="grid" id="grid"></main>
 
   <footer class="credit">
     🌷 本頁面為花田物資庫存紀錄，資料由管理員登入後維護更新 🌷<br>
-    新增花種請直接在 Google 試算表「花瓣」工作表新增一列即可
+    新增花種請直接在 Google 試算表「庫存」工作表新增一列即可
   </footer>
 
 </div>
@@ -531,17 +531,15 @@
   const CODE_TO_COLOR = { W:"白", Y:"黃", R:"紅", B:"藍" };
 
   function buildFallback(){
-    const essence = COLOR_ORDER.map(c => ({ color: c, qty: 0 }));
-    const petals = [];
+    const items = [];
     SPECIES_LIST.forEach(([name, codes]) => {
-      codes.split('').forEach(code => petals.push({ species: name, color: CODE_TO_COLOR[code], qty: 0 }));
+      codes.split('').forEach(code => items.push({ species: name, color: CODE_TO_COLOR[code], essence: 0, petal: 0 }));
     });
-    return { essence, petals };
+    return items;
   }
 
-  let essenceData = [];   // [{color, qty}]
-  let petalData = [];     // [{species, color, qty}]
-  let speciesOrder = [];  // 花種顯示順序（依第一次出現的順序）
+  let items = [];         // [{species, color, essence, petal}]
+  let speciesOrder = [];  // 花種顯示順序
 
   let isAdmin = false;
   let idToken = null;
@@ -560,9 +558,7 @@
   /* ---------------- 讀取資料 ---------------- */
   async function loadData(){
     if(!API_URL){
-      const fb = buildFallback();
-      essenceData = fb.essence;
-      petalData = fb.petals;
+      items = buildFallback();
       afterLoad();
       return;
     }
@@ -570,8 +566,7 @@
       const res = await fetch(`${API_URL}?action=list`);
       const data = await res.json();
       if(data.ok){
-        essenceData = data.essence;
-        petalData = data.petals;
+        items = data.items;
       }
       afterLoad();
     } catch(err){
@@ -582,85 +577,38 @@
   function afterLoad(){
     speciesOrder = [];
     const seen = new Set();
-    petalData.forEach(p => { if(!seen.has(p.species)){ seen.add(p.species); speciesOrder.push(p.species); } });
+    items.forEach(p => { if(!seen.has(p.species)){ seen.add(p.species); speciesOrder.push(p.species); } });
 
     const now = new Date();
     const hh = String(now.getHours()).padStart(2,'0');
     const mm = String(now.getMinutes()).padStart(2,'0');
     document.getElementById('updateTime').textContent = `更新於 今天 ${hh}:${mm}`;
 
+    renderOverview();
     renderColorChips();
-    renderEssence();
-    renderPetals();
+    renderGrid();
   }
 
-  /* ---------------- 精華區塊 ---------------- */
-  function renderEssence(){
-    const grid = document.getElementById('essenceGrid');
-    grid.innerHTML = "";
-    COLOR_ORDER.forEach((color, i) => {
-      const item = essenceData.find(e => e.color === color) || { color, qty: 0 };
+  /* ---------------- 總覽（唯讀加總） ---------------- */
+  function renderOverview(){
+    const wrap = document.getElementById('overviewGrid');
+    wrap.innerHTML = "";
+    COLOR_ORDER.forEach(color => {
+      const rows = items.filter(i => i.color === color);
+      const essenceSum = rows.reduce((s, i) => s + (i.essence || 0), 0);
+      const petalSum = rows.reduce((s, i) => s + (i.petal || 0), 0);
       const meta = COLOR_META[color];
       const card = document.createElement('div');
-      card.className = 'essence-card';
-      card.style.animationDelay = (i * 0.06) + 's';
-
-      const controlsHtml = isAdmin ? `
-        <div class="qty-control">
-          <button class="qty-btn" data-kind="essence" data-color="${color}" data-delta="-5" type="button">－5</button>
-          <button class="qty-btn" data-kind="essence" data-color="${color}" data-delta="-1" type="button">－1</button>
-          <input type="number" class="qty-input" min="0" value="${item.qty}" data-kind="essence" data-color="${color}" />
-          <button class="qty-btn" data-kind="essence" data-color="${color}" data-delta="1" type="button">＋1</button>
-          <button class="qty-btn" data-kind="essence" data-color="${color}" data-delta="5" type="button">＋5</button>
-        </div>
-      ` : `<div class="locked-hint">🔒 僅管理員可調整</div>`;
-
+      card.className = 'overview-card';
       card.innerHTML = `
-        <span class="essence-tag color-tag ${meta.cls}">${meta.emoji} ${color}精華</span>
-        <div class="essence-qty" id="essence-qty-${color}">${item.qty}</div>
-        ${controlsHtml}
+        <span class="tag color-tag ${meta.cls}">${meta.emoji} ${color}</span>
+        <div class="nums">
+          <span>✨ ${essenceSum}</span>
+          <span>🌸 ${petalSum}</span>
+        </div>
       `;
-      grid.appendChild(card);
+      wrap.appendChild(card);
     });
-
-    grid.querySelectorAll('.qty-btn[data-delta]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const color = btn.dataset.color;
-        const delta = Number(btn.dataset.delta);
-        updateEssenceQty(color, { delta });
-      });
-    });
-    grid.querySelectorAll('.qty-input[data-kind="essence"]').forEach(input => {
-      input.addEventListener('change', () => {
-        const color = input.dataset.color;
-        const qty = Math.max(0, Math.floor(Number(input.value) || 0));
-        updateEssenceQty(color, { qty });
-      });
-    });
-  }
-
-  async function updateEssenceQty(color, { delta, qty }){
-    if(!isAdmin) return;
-    if(!API_URL){
-      const item = essenceData.find(e => e.color === color);
-      if(item){
-        item.qty = qty !== undefined ? qty : Math.max(0, item.qty + delta);
-      }
-      renderEssence();
-      return;
-    }
-    try{
-      const params = new URLSearchParams({ action: 'updateEssence', color, idToken });
-      if(qty !== undefined) params.set('qty', qty); else params.set('delta', delta);
-      const res = await fetch(`${API_URL}?${params.toString()}`);
-      const data = await res.json();
-      if(!data.ok){ alert('更新失敗：' + (data.error || '未知錯誤')); await loadData(); return; }
-      const item = essenceData.find(e => e.color === color);
-      if(item) item.qty = data.qty;
-      renderEssence();
-    } catch(err){
-      alert('連線失敗，請檢查網路連線');
-    }
   }
 
   /* ---------------- 花色篩選 chips ---------------- */
@@ -673,31 +621,31 @@
       btn.className = 'chip' + (opt.key === activeColor ? ' active' : '');
       btn.type = 'button';
       btn.innerHTML = `${opt.emoji} ${opt.key}`;
-      btn.addEventListener('click', () => { activeColor = opt.key; renderColorChips(); renderPetals(); });
+      btn.addEventListener('click', () => { activeColor = opt.key; renderColorChips(); renderGrid(); });
       bar.appendChild(btn);
     });
   }
 
   document.getElementById('searchInput').addEventListener('input', (e) => {
     searchTerm = e.target.value.trim();
-    renderPetals();
+    renderGrid();
   });
 
-  /* ---------------- 花瓣區塊 ---------------- */
-  function renderPetals(){
-    const grid = document.getElementById('petalGrid');
+  /* ---------------- 花種卡片 ---------------- */
+  function renderGrid(){
+    const grid = document.getElementById('grid');
     grid.innerHTML = "";
 
     let species = speciesOrder.filter(name => {
       if(searchTerm && !name.includes(searchTerm)) return false;
       if(activeColor !== "全部"){
-        const has = petalData.some(p => p.species === name && p.color === activeColor);
+        const has = items.some(i => i.species === name && i.color === activeColor);
         if(!has) return false;
       }
       return true;
     });
 
-    document.getElementById('petalCountHint').textContent = `共 ${speciesOrder.length} 種花`;
+    document.getElementById('speciesCountHint').textContent = `共 ${speciesOrder.length} 種花`;
 
     if(species.length === 0){
       grid.innerHTML = `<div class="empty"><span class="emoji">🌱</span>找不到符合條件的花種，換個篩選或關鍵字看看吧。</div>`;
@@ -707,77 +655,88 @@
     species.forEach((name, i) => grid.appendChild(createSpeciesCard(name, i)));
   }
 
+  function qtyControlHtml(item, field){
+    const value = item[field];
+    if(!isAdmin){
+      return `<span class="readonly-qty">${value}</span>`;
+    }
+    return `
+      <div class="qty-control">
+        <button class="qty-btn" data-species="${escapeHtml(item.species)}" data-color="${item.color}" data-field="${field}" data-delta="-1" type="button">－</button>
+        <input type="number" class="qty-input" min="0" value="${value}" data-species="${escapeHtml(item.species)}" data-color="${item.color}" data-field="${field}" />
+        <button class="qty-btn" data-species="${escapeHtml(item.species)}" data-color="${item.color}" data-field="${field}" data-delta="1" type="button">＋</button>
+      </div>
+    `;
+  }
+
   function createSpeciesCard(name, i){
     const card = document.createElement('div');
     card.className = 'card';
     card.style.animationDelay = (i * 0.04) + 's';
 
-    const rows = petalData.filter(p => p.species === name);
+    const rows = items.filter(p => p.species === name);
 
-    const rowsHtml = COLOR_ORDER
+    const blocksHtml = COLOR_ORDER
       .map(color => rows.find(r => r.color === color))
       .filter(Boolean)
       .map(item => {
         const meta = COLOR_META[item.color];
         const dimmed = (activeColor !== "全部" && activeColor !== item.color) ? ' dimmed' : '';
-        const controlsHtml = isAdmin ? `
-          <div class="qty-control">
-            <button class="qty-btn" data-kind="petal" data-species="${escapeHtml(name)}" data-color="${item.color}" data-delta="-1" type="button">－</button>
-            <input type="number" class="qty-input" min="0" value="${item.qty}" data-kind="petal" data-species="${escapeHtml(name)}" data-color="${item.color}" />
-            <button class="qty-btn" data-kind="petal" data-species="${escapeHtml(name)}" data-color="${item.color}" data-delta="1" type="button">＋</button>
-          </div>
-        ` : `<span class="readonly-qty">${item.qty}</span>`;
-
         return `
-          <div class="color-row${dimmed}">
+          <div class="color-block${dimmed}">
             <span class="color-tag ${meta.cls}">${meta.emoji} ${item.color}</span>
-            ${controlsHtml}
+            <div class="stock-line">
+              <span class="stock-label essence">✨精華</span>
+              ${qtyControlHtml(item, 'essence')}
+            </div>
+            <div class="stock-line">
+              <span class="stock-label petal">🌸花瓣</span>
+              ${qtyControlHtml(item, 'petal')}
+            </div>
           </div>
         `;
       }).join("");
 
     card.innerHTML = `
       <div class="card-loc">🌼 ${escapeHtml(name)}</div>
-      ${rowsHtml}
+      ${blocksHtml}
+      ${!isAdmin ? `<div class="locked-hint">🔒 僅管理員可調整數量</div>` : ''}
     `;
 
     card.querySelectorAll('.qty-btn[data-delta]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const species = btn.dataset.species;
-        const color = btn.dataset.color;
-        const delta = Number(btn.dataset.delta);
-        updatePetalQty(species, color, { delta });
+        updateQty(btn.dataset.species, btn.dataset.color, btn.dataset.field, { delta: Number(btn.dataset.delta) });
       });
     });
-    card.querySelectorAll('.qty-input[data-kind="petal"]').forEach(input => {
+    card.querySelectorAll('.qty-input').forEach(input => {
       input.addEventListener('change', () => {
-        const species = input.dataset.species;
-        const color = input.dataset.color;
         const qty = Math.max(0, Math.floor(Number(input.value) || 0));
-        updatePetalQty(species, color, { qty });
+        updateQty(input.dataset.species, input.dataset.color, input.dataset.field, { qty });
       });
     });
 
     return card;
   }
 
-  async function updatePetalQty(species, color, { delta, qty }){
+  async function updateQty(species, color, field, { delta, qty }){
     if(!isAdmin) return;
     if(!API_URL){
-      const item = petalData.find(p => p.species === species && p.color === color);
-      if(item) item.qty = qty !== undefined ? qty : Math.max(0, item.qty + delta);
-      renderPetals();
+      const item = items.find(i => i.species === species && i.color === color);
+      if(item) item[field] = qty !== undefined ? qty : Math.max(0, item[field] + delta);
+      renderOverview();
+      renderGrid();
       return;
     }
     try{
-      const params = new URLSearchParams({ action: 'updatePetal', species, color, idToken });
+      const params = new URLSearchParams({ action: 'update', species, color, field, idToken });
       if(qty !== undefined) params.set('qty', qty); else params.set('delta', delta);
       const res = await fetch(`${API_URL}?${params.toString()}`);
       const data = await res.json();
       if(!data.ok){ alert('更新失敗：' + (data.error || '未知錯誤')); await loadData(); return; }
-      const item = petalData.find(p => p.species === species && p.color === color);
-      if(item) item.qty = data.qty;
-      renderPetals();
+      const item = items.find(i => i.species === species && i.color === color);
+      if(item) item[field] = data.qty;
+      renderOverview();
+      renderGrid();
     } catch(err){
       alert('連線失敗，請檢查網路連線');
     }
@@ -824,8 +783,7 @@
       adminEmail = payload && payload.email ? payload.email : '示範模式';
       adminName = payload && payload.name ? payload.name : adminEmail;
       refreshAdminPill();
-      renderEssence();
-      renderPetals();
+      renderGrid();
       return;
     }
 
@@ -838,8 +796,7 @@
         adminEmail = data.email;
         adminName = data.name || data.email;
         refreshAdminPill();
-        renderEssence();
-        renderPetals();
+        renderGrid();
       } else {
         alert('登入失敗：' + (data.error || '此帳號沒有管理員權限'));
       }
@@ -884,8 +841,7 @@
       google.accounts.id.disableAutoSelect();
     }
     refreshAdminPill();
-    renderEssence();
-    renderPetals();
+    renderGrid();
   });
 
   document.getElementById('refreshBtn').addEventListener('click', loadData);
