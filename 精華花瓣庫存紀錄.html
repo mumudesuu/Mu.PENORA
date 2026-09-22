@@ -648,11 +648,10 @@
 
   function buildFallback(){
     const list = [];
-    let orderNo = 1;
-    SPECIES_LIST.forEach(([name, codes]) => {
+    SPECIES_LIST.forEach(([name, codes], idx) => {
+      const order = idx + 1;
       codes.split('').forEach(code => {
-        list.push({ species: name, color: CODE_TO_COLOR[code], essence: 0, petal: 0, order: orderNo });
-        orderNo++;
+        list.push({ species: name, color: CODE_TO_COLOR[code], essence: 0, petal: 0, order });
       });
     });
     return list;
