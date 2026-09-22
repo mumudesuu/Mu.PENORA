@@ -367,6 +367,19 @@
   .color-tag.c-red{ background: var(--red); color:#fff; }
   .color-tag.c-blue{ background: var(--sky); color:#fff; }
 
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    font-weight:800;
+    font-size:11px;
+    padding: 3px 9px;
+    border-radius: 8px;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .badge.badge-main{ background:#FFE1A8; color:#8A5A00; border:1.5px solid #E8B34A; }
+  .badge.badge-sub{ background:#E3D4FA; color:#5B3C93; border:1.5px solid #B080E0; }
+
   .stock-line{
     display:flex;
     align-items:center;
@@ -546,6 +559,7 @@
     <div class="sort-box">
       <select id="sortSelect">
         <option value="default">↕️ 預設順序</option>
+        <option value="game-order">🎮 遊戲內排列</option>
         <option value="essence-asc">✨ 精華：低 → 高</option>
         <option value="essence-desc">✨ 精華：高 → 低</option>
         <option value="petal-asc">🌸 花瓣：低 → 高</option>
@@ -615,8 +629,12 @@
 
   function buildFallback(){
     const list = [];
+    let orderNo = 1;
     SPECIES_LIST.forEach(([name, codes]) => {
-      codes.split('').forEach(code => list.push({ species: name, color: CODE_TO_COLOR[code], essence: 0, petal: 0 }));
+      codes.split('').forEach(code => {
+        list.push({ species: name, color: CODE_TO_COLOR[code], essence: 0, petal: 0, order: orderNo });
+        orderNo++;
+      });
     });
     return list;
   }
@@ -771,7 +789,8 @@
   function sortItems(list){
     if(sortMode === "default") return list;
     const sorted = list.slice();
-    if(sortMode === "essence-asc") sorted.sort((a,b) => a.essence - b.essence);
+    if(sortMode === "game-order") sorted.sort((a,b) => a.order - b.order);
+    else if(sortMode === "essence-asc") sorted.sort((a,b) => a.essence - b.essence);
     else if(sortMode === "essence-desc") sorted.sort((a,b) => b.essence - a.essence);
     else if(sortMode === "petal-asc") sorted.sort((a,b) => a.petal - b.petal);
     else if(sortMode === "petal-desc") sorted.sort((a,b) => b.petal - a.petal);
@@ -815,11 +834,19 @@
     card.style.animationDelay = Math.min(i * 0.02, 0.4) + 's';
 
     const meta = COLOR_META[item.color];
+    const badgeHtml = item.order === 2
+      ? `<span class="badge badge-main">主花</span>`
+      : item.order === 3
+        ? `<span class="badge badge-sub">副花</span>`
+        : '';
 
     card.innerHTML = `
       <div class="card-loc">
         <span class="name">🌼 ${escapeHtml(item.species)}</span>
-        <span class="color-tag ${meta.cls}">${meta.emoji} ${item.color}</span>
+        <span style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+          ${badgeHtml}
+          <span class="color-tag ${meta.cls}">${meta.emoji} ${item.color}</span>
+        </span>
       </div>
       <div class="stock-line">
         <span class="stock-label essence">✨ 精華</span>
