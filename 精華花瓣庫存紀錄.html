@@ -145,6 +145,34 @@
   .update-pill button:hover{ background: var(--leaf-deep); transform: translateY(-1px);}
   .update-pill button:active{ transform: translateY(1px) scale(.96);}
 
+  .sync-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    margin-top:8px;
+    padding: 4px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight:700;
+    background: #F5F3EE;
+    color: #8A806E;
+  }
+  .sync-pill .dot{
+    width:8px; height:8px; border-radius:50%;
+    background:#B8AD94;
+    flex-shrink:0;
+  }
+  .sync-pill.synced{ background:#EAF6EE; color:var(--leaf-deep); }
+  .sync-pill.synced .dot{ background: var(--leaf); box-shadow:0 0 0 3px rgba(62,145,102,0.18); }
+  .sync-pill.syncing{ background:#FFF6DE; color:#8A6A00; }
+  .sync-pill.syncing .dot{ background: var(--yellow); animation: pulse-dot 1s ease-in-out infinite; }
+  .sync-pill.error{ background:#FDEBEC; color:var(--red-deep); }
+  .sync-pill.error .dot{ background: var(--red); }
+  @keyframes pulse-dot{
+    0%,100%{ opacity:1; transform:scale(1);}
+    50%{ opacity:.4; transform:scale(0.7);}
+  }
+
   .admin-pill{
     display:inline-flex;
     align-items:center;
@@ -552,11 +580,12 @@
 
   <header>
     <h1>花田庫存 精華・花瓣</h1>
-    <p class="sub">皮克敏花田物資紀錄，資料同步自 Google 試算表 🌱</p>
+    <p class="sub">皮克敏花田物資紀錄 🌱</p>
     <div class="update-pill">
       <span id="updateTime">尚未讀取</span>
       <button id="refreshBtn" type="button">🔄 重新整理</button>
     </div>
+    <div class="sync-pill" id="syncPill"><span class="dot"></span><span id="syncText">尚未同步</span></div>
     <div class="admin-pill" id="adminPill">
       <span id="adminStatusText">🔒 訪客模式（僅檢視）</span>
       <div id="googleSignInBtn"></div>
@@ -592,7 +621,7 @@
   <div class="analysis-grid" id="analysisGrid"></div>
 
   <footer class="credit">
-    🌷 本頁面為花田物資庫存紀錄，資料由管理員登入後維護更新 🌷<br>
+    🌷 本頁面為花田物資庫存紀錄，資料由沐沐親自盤點並維護更新 🌷<br>
     新增花種請直接在 Google 試算表「庫存」工作表新增一列即可
   </footer>
 
@@ -674,22 +703,40 @@
       .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
+  function setSyncStatus(state, text){
+    const pill = document.getElementById('syncPill');
+    const label = document.getElementById('syncText');
+    if(!pill || !label) return;
+    pill.className = 'sync-pill' + (state ? ' ' + state : '');
+    label.textContent = text;
+  }
+
   /* ---------------- 讀取資料 ---------------- */
   async function loadData(){
     if(!API_URL){
       items = buildFallback();
       afterLoad();
+      setSyncStatus('error', '💻 本地示範模式，未連接試算表');
       return;
     }
+    setSyncStatus('syncing', '🔄 同步中…');
     try{
       const res = await fetch(`${API_URL}?action=list`);
       const data = await res.json();
       if(data.ok){
         items = data.items;
+        afterLoad();
+        const now2 = new Date();
+        const hh2 = String(now2.getHours()).padStart(2,'0');
+        const mm2 = String(now2.getMinutes()).padStart(2,'0');
+        setSyncStatus('synced', `✅ 已同步（${hh2}:${mm2}）`);
+      } else {
+        afterLoad();
+        setSyncStatus('error', '⚠️ 同步失敗，顯示可能不是最新資料');
       }
-      afterLoad();
     } catch(err){
       console.error('讀取庫存失敗', err);
+      setSyncStatus('error', '⚠️ 連線失敗，顯示可能不是最新資料');
     }
   }
 
