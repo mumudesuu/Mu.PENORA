@@ -417,6 +417,69 @@
   }
   .empty .emoji{ font-size:40px; display:block; margin-bottom:10px;}
 
+  /* ---------- analysis ---------- */
+  .analysis-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .analysis-card{
+    background: var(--white);
+    border-radius: 20px;
+    padding: 16px 18px;
+    box-shadow: var(--card-shadow);
+    border: 3px solid rgba(39,97,72,0.06);
+  }
+  .analysis-card h3{
+    margin: 0 0 12px;
+    font-family:"Baloo 2",sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--leaf-deep);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .rank-list{
+    list-style:none;
+    margin:0; padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+  }
+  .rank-list li{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+    font-weight:600;
+  }
+  .rank-no{
+    flex-shrink:0;
+    width:20px; height:20px;
+    border-radius:50%;
+    background:#EAF3EC;
+    color:var(--leaf-deep);
+    font-family:"Baloo 2",sans-serif;
+    font-weight:800;
+    font-size:11px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .rank-name{
+    flex:1;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    color: var(--ink);
+  }
+  .rank-qty{
+    font-family:"Baloo 2",monospace;
+    font-weight:800;
+    color:#5C7B6A;
+    flex-shrink:0;
+  }
+
   footer.credit{
     text-align:center;
     margin-top: 46px;
@@ -492,12 +555,26 @@
   </div>
   <main class="grid" id="grid"></main>
 
+  <!-- ---------- 庫存分析 ---------- -->
+  <h2 class="section-title" id="analysisSection">📊 庫存分析</h2>
+  <div class="analysis-grid" id="analysisGrid"></div>
+
   <footer class="credit">
     🌷 本頁面為花田物資庫存紀錄，資料由管理員登入後維護更新 🌷<br>
     新增花種請直接在 Google 試算表「庫存」工作表新增一列即可
   </footer>
 
 </div>
+
+<!-- ---------- 懸浮按鈕：跳到庫存分析 ---------- -->
+<button id="jumpToAnalysisBtn" type="button" style="
+  position:fixed; right:18px; bottom:18px; z-index:200;
+  display:inline-flex; align-items:center; gap:6px;
+  background:#B080E0; color:#fff; border:none; cursor:pointer;
+  font-family:'Zen Maru Gothic','Noto Sans TC',sans-serif; font-weight:700; font-size:13.5px;
+  padding:12px 18px; border-radius:999px; box-shadow:0 4px 0 #7A4FB5;
+  transition:transform .15s ease;
+" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">📊 庫存分析</button>
 
 <script>
   /* =====================================================================
@@ -594,6 +671,53 @@
     renderOverview();
     renderColorChips();
     renderGrid();
+    renderAnalysis();
+  }
+
+  /* ---------- 庫存分析：精華 / 花瓣 最高最低前五名 ---------- */
+  function rankListHtml(list){
+    if(list.length === 0) return `<li style="color:#A6947A;">目前沒有資料</li>`;
+    return list.map((item, i) => {
+      const meta = COLOR_META[item.color];
+      return `
+        <li>
+          <span class="rank-no">${i + 1}</span>
+          <span class="color-tag ${meta.cls}" style="padding:2px 8px;font-size:10.5px;">${meta.emoji}</span>
+          <span class="rank-name">${escapeHtml(item.species)}</span>
+          <span class="rank-qty">${item[list.field]}</span>
+        </li>
+      `;
+    }).join("");
+  }
+
+  function topN(field, order, n){
+    const sorted = items.slice().sort((a, b) => order === 'desc' ? b[field] - a[field] : a[field] - b[field]);
+    const top = sorted.slice(0, n);
+    top.field = field;
+    return top;
+  }
+
+  function renderAnalysis(){
+    const wrap = document.getElementById('analysisGrid');
+    if(!wrap) return;
+    if(items.length === 0){ wrap.innerHTML = ''; return; }
+
+    const cards = [
+      { title: '✨ 精華庫存最高 Top 5', field: 'essence', order: 'desc' },
+      { title: '✨ 精華庫存最低 Top 5', field: 'essence', order: 'asc' },
+      { title: '🌸 花瓣庫存最高 Top 5', field: 'petal', order: 'desc' },
+      { title: '🌸 花瓣庫存最低 Top 5', field: 'petal', order: 'asc' },
+    ];
+
+    wrap.innerHTML = cards.map(c => {
+      const list = topN(c.field, c.order, 5);
+      return `
+        <div class="analysis-card">
+          <h3>${c.title}</h3>
+          <ul class="rank-list">${rankListHtml(list)}</ul>
+        </div>
+      `;
+    }).join("");
   }
 
   /* ---------------- 總覽（唯讀加總） ---------------- */
@@ -724,6 +848,7 @@
       if(item) item[field] = qty;
       renderOverview();
       renderGrid();
+      renderAnalysis();
       return;
     }
     try{
@@ -735,6 +860,7 @@
       if(item) item[field] = data.qty;
       renderOverview();
       renderGrid();
+      renderAnalysis();
     } catch(err){
       alert('連線失敗，請檢查網路連線');
     }
@@ -843,6 +969,9 @@
   });
 
   document.getElementById('refreshBtn').addEventListener('click', loadData);
+  document.getElementById('jumpToAnalysisBtn').addEventListener('click', () => {
+    document.getElementById('analysisSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 
   refreshAdminPill();
   waitForGoogleAndInit();
