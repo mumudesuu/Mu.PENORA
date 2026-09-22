@@ -722,6 +722,7 @@ const PRESETS = [
   { label:'6 小時', minutes: 6*60 },
   { label:'3 小時', minutes: 3*60 }
 ];
+const BASELINE_MINUTES = Math.max(...PRESETS.map(p => p.minutes));
 const CATEGORIES = ['沐田', '達醬', '柴田', 'Kiwi', '暫存', '其他'];
 let apiUrl = DEFAULT_API_URL;
 let fields = [];
@@ -920,9 +921,10 @@ async function fetchFields(){
         const bCooling = b.timerEnd !== null;
         if(aCooling !== bCooling) return aCooling ? -1 : 1;
         if(aCooling && bCooling) return a.timerEnd - b.timerEnd;
-        return a.name.localeCompare(b.name, 'zh-Hant');
+        return a.name.localeCompare(b.name, 'zh-Hant', { numeric: true });
       });
       mergedLog = (data.plantLog || []).map(l => ({
+        fieldId: l.fieldId,
         fieldName: l.fieldName,
         species: l.species || '',
         plantedAt: Number(l.plantedAt) || 0,
@@ -958,7 +960,7 @@ async function callApi(payload){
 async function addField(name, coords){
   const tempId = 'temp' + Date.now();
   fields.unshift({
-    id: tempId, name, species:'', coords: coords || '', category:'其他',
+    id: tempId, name, species:'', coords: coords || '', category:'暫存',
     harvest:false, fridge:false, ready:false,
     createdAt: Date.now(), timerEnd:null, timerMinutes:null
   });
@@ -996,11 +998,19 @@ async function toggleStage(id, key){
   const f = fields.find(x=>x.id===id);
   if(f) f[key] = !f[key];
   markPending(id, [key]);
+  if(key === 'harvest' && f){
+    const entry = mergedLog.find(l => l.fieldId === id);
+    if(entry){ entry.harvested = f.harvest; renderMergedLog(); }
+  }
   render();
   const result = await callApi({action:'toggleStage', id, key, idToken: adminIdToken});
   clearPending(id, [key]);
   if(result && result.ok === false){
     if(f) f[key] = !f[key];
+    if(key === 'harvest' && f){
+      const entry = mergedLog.find(l => l.fieldId === id);
+      if(entry){ entry.harvested = f.harvest; renderMergedLog(); }
+    }
     render();
     if(result.error === 'unauthorized'){
       toast('驗證失敗：' + (result.reason || '未知原因'));
@@ -1014,13 +1024,13 @@ async function toggleStage(id, key){
     }
   }
 }
-async function startTimer(id, minutes){
+async function startTimer(id, minutes, plantedAt){
   const f = fields.find(x=>x.id===id);
   if(f){ f.timerEnd = Date.now() + minutes*60000; f.timerMinutes = minutes; }
   customOpenIds.delete(id);
   markPending(id, ['timerEnd','timerMinutes']);
   render();
-  await callApi({action:'startTimer', id, minutes});
+  await callApi({action:'startTimer', id, minutes, plantedAt: plantedAt || Date.now()});
   clearPending(id, ['timerEnd','timerMinutes']);
 }
 async function clearTimer(id){
@@ -1267,7 +1277,9 @@ function render(){
       const m = Number(card.querySelector('[data-role="custom-m"]').value) || 0;
       const total = h*60 + m;
       if(total <= 0){ toast('請輸入時或分'); return; }
-      startTimer(card.dataset.id, total);
+      const elapsedMinutes = Math.max(BASELINE_MINUTES - total, 0);
+      const plantedAt = Date.now() - elapsedMinutes*60000;
+      startTimer(card.dataset.id, total, plantedAt);
     });
   });
 }
