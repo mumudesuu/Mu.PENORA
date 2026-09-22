@@ -837,9 +837,17 @@
   function sortSpecies(speciesList){
     const stat = name => {
       const rows = items.filter(i => i.species === name);
+      if(activeColor === "全部"){
+        return {
+          essence: rows.reduce((s, r) => s + (r.essence || 0), 0),
+          petal: rows.reduce((s, r) => s + (r.petal || 0), 0),
+          order: Math.min(...rows.map(r => r.order || 0)),
+        };
+      }
+      const row = rows.find(r => r.color === activeColor);
       return {
-        essence: rows.reduce((s, r) => s + (r.essence || 0), 0),
-        petal: rows.reduce((s, r) => s + (r.petal || 0), 0),
+        essence: row ? row.essence : 0,
+        petal: row ? row.petal : 0,
         order: Math.min(...rows.map(r => r.order || 0)),
       };
     };
