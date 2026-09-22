@@ -335,21 +335,38 @@
   .card-loc{
     font-family:"Baloo 2",sans-serif;
     font-weight:700;
-    font-size: 15.5px;
+    font-size: 17px;
     color: var(--leaf-deep);
     display:flex;
     align-items:center;
-    justify-content:space-between;
-    gap:6px;
-    margin-bottom: 10px;
+    gap:8px;
+    margin-bottom: 12px;
   }
   .card-loc .name{
-    display:flex;
-    align-items:center;
-    gap:5px;
     overflow:hidden;
     text-overflow:ellipsis;
     white-space:nowrap;
+  }
+
+  .stock-grid{
+    display:grid;
+    grid-template-columns: auto 1fr 1fr;
+    gap: 6px 10px;
+    align-items:center;
+  }
+  .stock-grid-row{
+    display:contents;
+  }
+  .stock-grid-head span{
+    font-size:11.5px;
+    font-weight:800;
+    color:#7C9686;
+    text-align:center;
+  }
+  .stock-grid-row.dimmed span,
+  .stock-grid-row.dimmed .qty-input,
+  .stock-grid-row.dimmed .readonly-qty{
+    opacity:0.35;
   }
   .color-tag{
     display:inline-flex;
@@ -419,6 +436,8 @@
     font-weight:800;
     font-size:15px;
     color: var(--ink);
+    text-align:center;
+    display:block;
   }
 
   .empty{
@@ -785,39 +804,56 @@
     renderGrid();
   });
 
-  /* ---------------- 排序 ---------------- */
-  function sortItems(list){
-    if(sortMode === "default") return list;
-    const sorted = list.slice();
-    if(sortMode === "game-order") sorted.sort((a,b) => a.order - b.order);
-    else if(sortMode === "essence-asc") sorted.sort((a,b) => a.essence - b.essence);
-    else if(sortMode === "essence-desc") sorted.sort((a,b) => b.essence - a.essence);
-    else if(sortMode === "petal-asc") sorted.sort((a,b) => a.petal - b.petal);
-    else if(sortMode === "petal-desc") sorted.sort((a,b) => b.petal - a.petal);
-    return sorted;
-  }
+  /* ---------------- 排序（sortSpecies 定義在下方，依花種彙總排序） ---------------- */
 
-  /* ---------------- 花種卡片（一張卡 = 一個花種＋花色） ---------------- */
+  /* ---------------- 花種卡片（一張卡 = 一個花種，內含所有花色） ---------------- */
   function renderGrid(){
     const grid = document.getElementById('grid');
     grid.innerHTML = "";
 
-    let list = items.filter(i => {
-      if(searchTerm && !i.species.includes(searchTerm)) return false;
-      if(activeColor !== "全部" && i.color !== activeColor) return false;
+    const seen = new Set();
+    let speciesList = [];
+    items.forEach(i => { if(!seen.has(i.species)){ seen.add(i.species); speciesList.push(i.species); } });
+
+    speciesList = speciesList.filter(name => {
+      if(searchTerm && !name.includes(searchTerm)) return false;
+      if(activeColor !== "全部"){
+        const has = items.some(i => i.species === name && i.color === activeColor);
+        if(!has) return false;
+      }
       return true;
     });
 
-    list = sortItems(list);
+    speciesList = sortSpecies(speciesList);
 
-    document.getElementById('speciesCountHint').textContent = `共 ${speciesCount} 種花・${list.length} 筆資料`;
+    document.getElementById('speciesCountHint').textContent = `共 ${speciesList.length} 種花`;
 
-    if(list.length === 0){
+    if(speciesList.length === 0){
       grid.innerHTML = `<div class="empty"><span class="emoji">🌱</span>找不到符合條件的花種，換個篩選或關鍵字看看吧。</div>`;
       return;
     }
 
-    list.forEach((item, i) => grid.appendChild(createItemCard(item, i)));
+    speciesList.forEach((name, i) => grid.appendChild(createSpeciesCard(name, i)));
+  }
+
+  function sortSpecies(speciesList){
+    if(sortMode === "default") return speciesList;
+
+    const stat = name => {
+      const rows = items.filter(i => i.species === name);
+      return {
+        essence: rows.reduce((s, r) => s + (r.essence || 0), 0),
+        petal: rows.reduce((s, r) => s + (r.petal || 0), 0),
+        order: Math.min(...rows.map(r => r.order || 0)),
+      };
+    };
+    const sorted = speciesList.slice();
+    if(sortMode === "game-order") sorted.sort((a,b) => stat(a).order - stat(b).order);
+    else if(sortMode === "essence-asc") sorted.sort((a,b) => stat(a).essence - stat(b).essence);
+    else if(sortMode === "essence-desc") sorted.sort((a,b) => stat(b).essence - stat(a).essence);
+    else if(sortMode === "petal-asc") sorted.sort((a,b) => stat(a).petal - stat(b).petal);
+    else if(sortMode === "petal-desc") sorted.sort((a,b) => stat(b).petal - stat(a).petal);
+    return sorted;
   }
 
   function qtyFieldHtml(item, field){
@@ -828,33 +864,44 @@
     return `<input type="number" class="qty-input" min="0" value="${value}" data-species="${escapeHtml(item.species)}" data-color="${item.color}" data-field="${field}" />`;
   }
 
-  function createItemCard(item, i){
+  function createSpeciesCard(name, i){
     const card = document.createElement('div');
     card.className = 'card';
-    card.style.animationDelay = Math.min(i * 0.02, 0.4) + 's';
+    card.style.animationDelay = Math.min(i * 0.03, 0.4) + 's';
 
-    const meta = COLOR_META[item.color];
-    const badgeHtml = item.order === 2
+    const rows = items.filter(p => p.species === name);
+    const orderVal = Math.min(...rows.map(r => r.order || 0));
+    const badgeHtml = orderVal === 2
       ? `<span class="badge badge-main">主花</span>`
-      : item.order === 3
+      : orderVal === 3
         ? `<span class="badge badge-sub">副花</span>`
         : '';
 
+    const rowsHtml = COLOR_ORDER
+      .map(color => rows.find(r => r.color === color))
+      .filter(Boolean)
+      .map(item => {
+        const meta = COLOR_META[item.color];
+        const dimmed = (activeColor !== "全部" && activeColor !== item.color) ? ' dimmed' : '';
+        return `
+          <div class="stock-grid-row${dimmed}">
+            <span class="color-tag ${meta.cls}">${meta.emoji} ${item.color}</span>
+            ${qtyFieldHtml(item, 'essence')}
+            ${qtyFieldHtml(item, 'petal')}
+          </div>
+        `;
+      }).join("");
+
     card.innerHTML = `
       <div class="card-loc">
-        <span class="name">🌼 ${escapeHtml(item.species)}</span>
-        <span style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
-          ${badgeHtml}
-          <span class="color-tag ${meta.cls}">${meta.emoji} ${item.color}</span>
-        </span>
+        <span class="name">🌼 ${escapeHtml(name)}</span>
+        ${badgeHtml}
       </div>
-      <div class="stock-line">
-        <span class="stock-label essence">✨ 精華</span>
-        ${qtyFieldHtml(item, 'essence')}
-      </div>
-      <div class="stock-line">
-        <span class="stock-label petal">🌸 花瓣</span>
-        ${qtyFieldHtml(item, 'petal')}
+      <div class="stock-grid">
+        <div class="stock-grid-row stock-grid-head">
+          <span></span><span>精華</span><span>花瓣</span>
+        </div>
+        ${rowsHtml}
       </div>
     `;
 
