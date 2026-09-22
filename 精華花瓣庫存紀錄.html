@@ -577,8 +577,7 @@
     </div>
     <div class="sort-box">
       <select id="sortSelect">
-        <option value="default">↕️ 預設順序</option>
-        <option value="game-order">🎮 遊戲內排列</option>
+        <option value="default">🎮 遊戲內排列</option>
         <option value="essence-asc">✨ 精華：低 → 高</option>
         <option value="essence-desc">✨ 精華：高 → 低</option>
         <option value="petal-asc">🌸 花瓣：低 → 高</option>
@@ -836,8 +835,6 @@
   }
 
   function sortSpecies(speciesList){
-    if(sortMode === "default") return speciesList;
-
     const stat = name => {
       const rows = items.filter(i => i.species === name);
       return {
@@ -847,7 +844,7 @@
       };
     };
     const sorted = speciesList.slice();
-    if(sortMode === "game-order") sorted.sort((a,b) => stat(a).order - stat(b).order);
+    if(sortMode === "default") sorted.sort((a,b) => stat(a).order - stat(b).order);
     else if(sortMode === "essence-asc") sorted.sort((a,b) => stat(a).essence - stat(b).essence);
     else if(sortMode === "essence-desc") sorted.sort((a,b) => stat(b).essence - stat(a).essence);
     else if(sortMode === "petal-asc") sorted.sort((a,b) => stat(a).petal - stat(b).petal);
