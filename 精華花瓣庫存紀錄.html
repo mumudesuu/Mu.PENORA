@@ -594,6 +594,7 @@
         <button id="refreshBtn" type="button">🔄 重新整理</button>
       </div>
       <div class="sync-pill" id="syncPill"><span class="dot"></span><span id="syncText">尚未同步</span></div>
+      <div class="sync-pill" id="lastUpdatedPill"><span id="lastUpdatedText">🕒 庫存最後異動：－</span></div>
     </div>
     <div class="admin-pill" id="adminPill">
       <span id="adminStatusText">🔒 訪客模式（僅檢視）</span>
@@ -608,6 +609,20 @@
 
   <!-- ---------- 花種庫存 ---------- -->
   <h2 class="section-title">🌸 花種庫存明細 <span class="count-hint" id="speciesCountHint"></span></h2>
+  <div id="bulkToggleWrap" style="display:none; text-align:center; margin-bottom:14px;">
+    <button id="bulkToggleBtn" type="button" class="chip" style="background:#FFF0D6; box-shadow:0 3px 0 #E0B060; color:#8A5A00;">📋 批次貼上（截圖辨識結果）</button>
+  </div>
+  <div id="bulkPanel" style="display:none; max-width:640px; margin:0 auto 24px; background:var(--white); border-radius:20px; padding:18px 20px; box-shadow:var(--card-shadow); border:3px solid rgba(39,97,72,0.06);">
+    <p style="margin:0 0 8px; font-size:13px; color:#5C7B6A; line-height:1.6;">
+      把截圖丟給 Claude，請它整理成「<b>顏色花種,精華,花瓣</b>」每行一筆的格式，整段貼在下面（用逗號或 Tab 分隔都可以），按套用就會一次寫回試算表。
+    </p>
+    <textarea id="bulkTextarea" rows="8" placeholder="白色九重葛,1200,1200&#10;黃色九重葛,803,220&#10;紅色九重葛,1195,917" style="width:100%; font-family:'Baloo 2',monospace; font-size:13px; padding:10px 12px; border-radius:12px; border:2px solid #E3D9C4; outline:none; resize:vertical; box-sizing:border-box;"></textarea>
+    <div style="display:flex; gap:10px; justify-content:center; margin-top:12px; flex-wrap:wrap;">
+      <button id="bulkApplyBtn" type="button" style="border:none; cursor:pointer; background:var(--leaf); color:#fff; font-family:'Zen Maru Gothic',sans-serif; font-weight:700; font-size:13.5px; padding:9px 20px; border-radius:999px; box-shadow:0 3px 0 var(--leaf-deep);">✅ 套用</button>
+      <button id="bulkCancelBtn" type="button" style="border:none; cursor:pointer; background:#EFEBE0; color:#7C6F55; font-family:'Zen Maru Gothic',sans-serif; font-weight:700; font-size:13.5px; padding:9px 20px; border-radius:999px;">取消</button>
+    </div>
+    <p id="bulkResult" style="margin:12px 0 0; font-size:12.5px; color:#7C9686; text-align:center;"></p>
+  </div>
   <nav class="filter-bar" id="colorFilterBar" aria-label="依花色篩選"></nav>
   <div class="toolbar-row">
     <div class="search-box">
@@ -667,19 +682,20 @@
 
   // 目前的花種清單（僅本地示範模式／尚未接後端時使用）
   const SPECIES_LIST = [
-    ["銀蓮花","WYRB"], ["九重葛","WYRB"], ["海芋","WYRB"], ["山茶花","WYRB"],
-    ["油菜花","WYB"], ["康乃馨","WYRB"], ["嘉德麗雅蘭","WYRB"], ["雞冠花","WYRB"],
+    ["普花","WYRB"], ["洋桔梗","WYRB"], ["雞冠花","WYRB"], ["銀蓮花","WYRB"],
+    ["風鈴草","WRB"], ["九重葛","WYRB"], ["海芋","WYRB"], ["山茶花","WYRB"],
+    ["美人蕉","WYR"], ["油菜花","WYB"], ["康乃馨","WYRB"], ["嘉德麗雅蘭","WYRB"],
     ["櫻花","W"], ["菊花","WYRB"], ["鐵線蓮","WYRB"], ["彼岸花","WYR"],
     ["鈴蘭","WR"], ["大波斯菊","WYR"], ["兔耳花","WRB"], ["大理花","WYRB"],
-    ["石竹","WRB"], ["小蒼蘭","WYRB"], ["龍膽","WRB"], ["聖誕玫瑰","WYRB"],
-    ["扶桑花","WYRB"], ["風信子","WYRB"], ["繡球花","WRB"], ["鳶尾花","WYRB"],
-    ["百合","WYR"], ["萬壽菊","WYR"], ["牽牛花","WYRB"], ["蝴蝶蘭","WYRB"],
-    ["水仙","WY"], ["粉蝶花","B"], ["睡蓮","WYRB"], ["三色菫","WYRB"],
-    ["牡丹","WYRB"], ["矮牽牛","WYRB"], ["梅花","WYR"], ["雞蛋花","WYR"],
-    ["聖誕紅","WYRB"], ["櫻草花","WYRB"], ["玫瑰","WYRB"], ["週年紀念玫瑰","WYRB"],
-    ["鼠尾草","WYRB"], ["金魚草","WYRB"], ["雪花蓮","WYR"], ["天堂鳥","WYR"],
-    ["向日葵","Y"], ["豌豆花","WYRB"], ["鬱金香","WYRB"], ["鸚鵡鬱金香","WYRB"],
-    ["勿忘草","WYRB"], ["曇花","WYRB"], ["美人蕉","WYR"], ["洋桔梗","WYRB"],
+    ["石竹","WRB"], ["曇花","WYRB"], ["勿忘草","WYRB"], ["小蒼蘭","WYRB"],
+    ["龍膽","WRB"], ["聖誕玫瑰","WYRB"], ["扶桑花","WYRB"], ["風信子","WYRB"],
+    ["繡球花","WRB"], ["鳶尾花","WYRB"], ["百合","WYR"], ["萬壽菊","WYR"],
+    ["牽牛花","WYRB"], ["蝴蝶蘭","WYRB"], ["水仙花","WY"], ["粉蝶花","B"],
+    ["睡蓮","WYRB"], ["三色菫","WYRB"], ["牡丹","WYRB"], ["矮牽牛","WYRB"],
+    ["梅花","WYR"], ["雞蛋花","WYR"], ["聖誕紅","WYRB"], ["櫻草花","WYRB"],
+    ["玫瑰","WYRB"], ["週年紀念玫瑰","WYRB"], ["鼠尾草","WYRB"], ["金魚草","WYRB"],
+    ["雪花蓮","WYR"], ["天堂鳥","WYR"], ["向日葵","Y"], ["豌豆花","WYRB"],
+    ["鬱金香","WYRB"], ["鸚鵡鬱金香","WYRB"],
   ];
   const CODE_TO_COLOR = { W:"白", Y:"黃", R:"紅", B:"藍" };
 
@@ -696,6 +712,8 @@
 
   let items = [];        // [{species, color, essence, petal}] —— 依試算表原始順序
   let speciesCount = 0;
+  let specialEssence = 0;
+  let lastUpdated = '';
 
   let isAdmin = false;
   let idToken = null;
@@ -734,6 +752,8 @@
       const data = await res.json();
       if(data.ok){
         items = data.items;
+        specialEssence = data.specialEssence || 0;
+        lastUpdated = data.lastUpdated || '';
         afterLoad();
         const now2 = new Date();
         const hh2 = String(now2.getHours()).padStart(2,'0');
@@ -758,6 +778,11 @@
     const hh = String(now.getHours()).padStart(2,'0');
     const mm = String(now.getMinutes()).padStart(2,'0');
     document.getElementById('updateTime').textContent = `更新於 今天 ${hh}:${mm}`;
+
+    const lastUpdatedEl = document.getElementById('lastUpdatedText');
+    if(lastUpdatedEl){
+      lastUpdatedEl.textContent = lastUpdated ? `🕒 庫存最後異動：${lastUpdated}` : '🕒 庫存最後異動：尚無紀錄';
+    }
 
     renderOverview();
     renderColorChips();
@@ -788,19 +813,38 @@
     return top;
   }
 
+  // 精華還有蠻多、但花瓣很少的花種 —— 建議優先去補花瓣
+  function topRestockPetal(n){
+    const sorted = items.slice().sort((a, b) => (b.essence - b.petal) - (a.essence - a.petal));
+    return sorted.slice(0, n);
+  }
+
+  function restockListHtml(list){
+    if(list.length === 0) return `<li style="color:#A6947A;">目前沒有資料</li>`;
+    return list.map((item, i) => {
+      const meta = COLOR_META[item.color];
+      return `
+        <li>
+          <span class="rank-no">${i + 1}</span>
+          <span class="color-tag ${meta.cls}" style="padding:2px 8px;font-size:10.5px;">${meta.emoji}</span>
+          <span class="rank-name">${escapeHtml(item.species)}</span>
+          <span class="rank-qty">✨${item.essence}／🌸${item.petal}</span>
+        </li>
+      `;
+    }).join("");
+  }
+
   function renderAnalysis(){
     const wrap = document.getElementById('analysisGrid');
     if(!wrap) return;
     if(items.length === 0){ wrap.innerHTML = ''; return; }
 
     const cards = [
-      { title: '✨ 精華庫存最高 Top 5', field: 'essence', order: 'desc' },
       { title: '✨ 精華庫存最低 Top 5', field: 'essence', order: 'asc' },
-      { title: '🌸 花瓣庫存最高 Top 5', field: 'petal', order: 'desc' },
       { title: '🌸 花瓣庫存最低 Top 5', field: 'petal', order: 'asc' },
     ];
 
-    wrap.innerHTML = cards.map(c => {
+    let html = cards.map(c => {
       const list = topN(c.field, c.order, 5);
       return `
         <div class="analysis-card">
@@ -809,9 +853,18 @@
         </div>
       `;
     }).join("");
+
+    html += `
+      <div class="analysis-card">
+        <h3>🧺 建議快補花瓣 Top 5</h3>
+        <ul class="rank-list">${restockListHtml(topRestockPetal(5))}</ul>
+      </div>
+    `;
+
+    wrap.innerHTML = html;
   }
 
-  /* ---------------- 總覽（唯讀加總） ---------------- */
+  /* ---------------- 總覽（唯讀加總 + 特殊精華） ---------------- */
   function renderOverview(){
     const wrap = document.getElementById('overviewGrid');
     wrap.innerHTML = "";
@@ -831,6 +884,47 @@
       `;
       wrap.appendChild(card);
     });
+
+    // 特殊精華：沒有花色、沒有花瓣，只有一個精華數字
+    const specialCard = document.createElement('div');
+    specialCard.className = 'overview-card';
+    const specialControl = isAdmin
+      ? `<input type="number" class="qty-input" min="0" value="${specialEssence}" id="specialEssenceInput" style="width:80px;" />`
+      : `<span class="readonly-qty">${specialEssence}</span>`;
+    specialCard.innerHTML = `
+      <span class="tag" style="background:#FDEBF1; color:#B5406B; border:1.5px solid #F2A9C4;">💖 特殊精華</span>
+      <div class="nums">${specialControl}</div>
+    `;
+    wrap.appendChild(specialCard);
+
+    if(isAdmin){
+      const input = document.getElementById('specialEssenceInput');
+      if(input){
+        input.addEventListener('change', () => {
+          const qty = Math.max(0, Math.floor(Number(input.value) || 0));
+          updateSpecialEssence(qty);
+        });
+      }
+    }
+  }
+
+  async function updateSpecialEssence(qty){
+    if(!isAdmin) return;
+    if(!API_URL){
+      specialEssence = qty;
+      renderOverview();
+      return;
+    }
+    try{
+      const params = new URLSearchParams({ action: 'updateSpecial', qty, idToken });
+      const res = await fetch(`${API_URL}?${params.toString()}`);
+      const data = await res.json();
+      if(!data.ok){ alert('更新失敗：' + (data.error || '未知錯誤')); await loadData(); return; }
+      specialEssence = data.qty;
+      renderOverview();
+    } catch(err){
+      alert('連線失敗，請檢查網路連線');
+    }
   }
 
   /* ---------------- 花色篩選 chips ---------------- */
@@ -1018,6 +1112,12 @@
       googleBtnContainer.style.display = '';
       logoutBtn.style.display = 'none';
     }
+    const bulkToggleWrap = document.getElementById('bulkToggleWrap');
+    if(bulkToggleWrap) bulkToggleWrap.style.display = isAdmin ? '' : 'none';
+    if(!isAdmin){
+      const bulkPanel = document.getElementById('bulkPanel');
+      if(bulkPanel) bulkPanel.style.display = 'none';
+    }
   }
 
   function decodeJwtPayload(token){
@@ -1106,6 +1206,106 @@
   document.getElementById('jumpToAnalysisBtn').addEventListener('click', () => {
     document.getElementById('analysisSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
+
+  /* ---------------- 批次貼上（截圖辨識結果） ---------------- */
+  const bulkToggleBtn = document.getElementById('bulkToggleBtn');
+  const bulkPanel = document.getElementById('bulkPanel');
+  const bulkTextarea = document.getElementById('bulkTextarea');
+  const bulkResult = document.getElementById('bulkResult');
+
+  if(bulkToggleBtn){
+    bulkToggleBtn.addEventListener('click', () => {
+      bulkPanel.style.display = bulkPanel.style.display === 'none' ? '' : 'none';
+      bulkResult.textContent = '';
+    });
+  }
+  const bulkCancelBtn = document.getElementById('bulkCancelBtn');
+  if(bulkCancelBtn){
+    bulkCancelBtn.addEventListener('click', () => {
+      bulkPanel.style.display = 'none';
+      bulkTextarea.value = '';
+      bulkResult.textContent = '';
+    });
+  }
+
+  function parseBulkText(text){
+    const rows = [];
+    const errors = [];
+    text.split('\n').forEach(rawLine => {
+      const line = rawLine.trim();
+      if(!line) return;
+      const parts = line.split(/[,\t，]/).map(s => s.trim()).filter(s => s !== '');
+      if(parts.length < 2){ errors.push(line); return; }
+
+      const fullName = parts[0];
+      const colorChar = fullName.charAt(0);
+      if(!COLOR_ORDER.includes(colorChar)){ errors.push(line); return; }
+      const species = fullName.slice(1);
+
+      // 支援兩種欄位順序：精華在前或花瓣在前，用欄位數判斷；預設「精華,花瓣」
+      const essence = parts[1] !== undefined && parts[1] !== '' ? Number(parts[1]) : undefined;
+      const petal = parts[2] !== undefined && parts[2] !== '' ? Number(parts[2]) : undefined;
+
+      if((essence !== undefined && isNaN(essence)) || (petal !== undefined && isNaN(petal))){
+        errors.push(line); return;
+      }
+      rows.push({ species, color: colorChar, essence, petal });
+    });
+    return { rows, errors };
+  }
+
+  const bulkApplyBtn = document.getElementById('bulkApplyBtn');
+  if(bulkApplyBtn){
+    bulkApplyBtn.addEventListener('click', async () => {
+      if(!isAdmin) return;
+      const { rows, errors } = parseBulkText(bulkTextarea.value);
+      if(rows.length === 0){
+        bulkResult.textContent = '⚠️ 沒有解析到任何資料，請確認格式是「顏色花種,精華,花瓣」';
+        return;
+      }
+      bulkApplyBtn.disabled = true;
+      bulkResult.textContent = `⏳ 套用中…（共 ${rows.length} 筆）`;
+
+      if(!API_URL){
+        rows.forEach(r => {
+          const item = items.find(i => i.species === r.species && i.color === r.color);
+          if(item){
+            if(r.essence !== undefined) item.essence = Math.max(0, Math.floor(r.essence));
+            if(r.petal !== undefined) item.petal = Math.max(0, Math.floor(r.petal));
+          }
+        });
+        renderOverview(); renderGrid(); renderAnalysis();
+        bulkResult.textContent = `✅ 本地示範模式已套用 ${rows.length} 筆（未連接試算表，重新整理會消失）`;
+        bulkApplyBtn.disabled = false;
+        return;
+      }
+
+      try{
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'bulkUpdate', idToken, rows }),
+        });
+        const data = await res.json();
+        if(!data.ok){
+          bulkResult.textContent = '❌ 套用失敗：' + (data.error || '未知錯誤');
+        } else {
+          let msg = `✅ 已更新 ${data.updated} 筆`;
+          if(data.notFound && data.notFound.length > 0){
+            msg += `，找不到 ${data.notFound.length} 筆：${data.notFound.slice(0,5).join('、')}${data.notFound.length > 5 ? ' …' : ''}`;
+          }
+          if(errors.length > 0){
+            msg += `（另有 ${errors.length} 行格式看不懂，已略過）`;
+          }
+          bulkResult.textContent = msg;
+          await loadData();
+        }
+      } catch(err){
+        bulkResult.textContent = '❌ 連線失敗，請檢查網路連線後再試一次';
+      }
+      bulkApplyBtn.disabled = false;
+    });
+  }
 
   refreshAdminPill();
   waitForGoogleAndInit();
