@@ -434,7 +434,7 @@
   function initApp(){
     const CATS = { flower:{label:'花點', icon:'🌸'}, mushroom:{label:'菇點', icon:'🍄'}, hidden:{label:'隱藏點', icon:'✨'} };
 
-    const KEYWORD_CATEGORIES = [
+    const DEFAULT_KEYWORD_CATEGORIES = [
       { label:'自然景觀', words:['花朵','雪','日落','日出','天空','櫻花','森林','海灘','海','河流','瀑布','海灣','沙漠','島嶼','山','岩石','洞穴','月亮','冰','樹木','池塘','湖泊','彩虹','草地','雨','星星','銀河','太陽','海浪','極光','蘑菇','星球','太空'] },
       { label:'動物', words:['動物','狗','貓','青蛙','烏龜','馬','鹿','牛','龍','恐龍','魚','老虎','大象','鳥','鴨子','海豚','螃蟹','狐狸'] },
       { label:'建築地標', words:['咖啡館','花園','噴泉','城堡','市集','公園','神社','雕像','街頭藝術','寺廟','高塔','博物館','房子','城市','教堂','金字塔','度假村','風車','摩天輪','十字架','街道','小巷','窗戶','門','椅子','書本','壁畫'] },
@@ -443,6 +443,20 @@
       { label:'生活物品', words:['燈光','傳單','球','玩具','茶','咖啡','香蕉','可口可樂','販賣機','氣球','翅膀','時鐘','鞦韆'] },
       { label:'節慶活動', words:['節慶','夜景','運動','游泳池','生日','愛','愛心','生日快樂','煙火'] }
     ];
+    let KEYWORD_CATEGORIES = DEFAULT_KEYWORD_CATEGORIES;
+
+    // 試著從試算表的「關鍵字」分頁讀取，讀不到（沒建立分頁、暫存模式、網路問題）就繼續用內建清單，不影響操作
+    async function loadKeywordCategories(){
+      if(!API_URL) return;
+      try{
+        const res = await fetch(`${API_URL}?action=keywords`);
+        const data = await res.json();
+        if(data.ok && Array.isArray(data.categories) && data.categories.length > 0){
+          KEYWORD_CATEGORIES = data.categories;
+        }
+      }catch(e){ /* 讀取失敗就沿用內建清單 */ }
+    }
+
     function buildKeywordPanelHTML(){
       return KEYWORD_CATEGORIES.map(cat => `
         <div class="keyword-group">
@@ -1351,6 +1365,7 @@
 
     initGoogleSignIn();
     loadPosts();
+    loadKeywordCategories();
   }
 })();
 </script>
